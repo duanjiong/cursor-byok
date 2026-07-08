@@ -139,6 +139,9 @@ func shouldPersistNormalizedConfig(raw []byte, current Config, normalized Config
 	if !yamlHasKey(raw, "backendListenAddr") || !yamlHasKey(raw, "proxyListenAddr") {
 		return true
 	}
+	if !yamlHasKey(raw, "cursor") || strings.TrimSpace(current.Cursor.UserDataDir) != strings.TrimSpace(normalized.Cursor.UserDataDir) {
+		return true
+	}
 	if current.BackendListenAddr != normalized.BackendListenAddr || current.ProxyListenAddr != normalized.ProxyListenAddr {
 		return true
 	}

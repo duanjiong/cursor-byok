@@ -82,12 +82,16 @@ func (s *ProxyService) StartProxy() (ProxyState, error) {
 		return fail("wait_backend_ready", err)
 	}
 	logger.Infof("embedded backend ready listen_addr=%s", s.backendHost.ListenAddr())
+	profile, err := s.cursorRuntimeProfile()
+	if err != nil {
+		return fail("resolve_cursor_profile", err)
+	}
 	if err := s.ensureProxy(cfg); err != nil {
 		return fail("ensure_proxy", err)
 	}
 
 	// 启动时注入账号信息
-	if err := cursor.InjectCursorUserInfo(localruntime.InjectAccountEmail, localruntime.InjectAuthToken); err != nil {
+	if err := cursor.InjectCursorUserInfo(profile, localruntime.InjectAccountEmail, localruntime.InjectAuthToken); err != nil {
 		logger.Errorf("injectCursorUserInfo failed: %v", err)
 		// 不阻断启动，仅记录日志
 	}
@@ -117,9 +121,10 @@ func (s *ProxyService) StartProxy() (ProxyState, error) {
 	s.emitState()
 	state := s.GetState()
 	logger.Infof(
-		"start service completed backend_listen_addr=%s proxy_listen_addr=%s cursor_settings_applied=%t",
+		"start service completed backend_listen_addr=%s proxy_listen_addr=%s cursor_user_data_dir=%s cursor_settings_applied=%t",
 		state.BackendListenAddr,
 		state.ProxyListenAddr,
+		profile.UserDataDir,
 		state.CursorSettingsApplied,
 	)
 	return state, nil

@@ -7,10 +7,22 @@ import (
 	"cursor/internal/cursor"
 )
 
+func (s *ProxyService) cursorRuntimeProfile() (cursor.RuntimeProfile, error) {
+	cfg, err := s.LoadUserConfig()
+	if err != nil {
+		return cursor.RuntimeProfile{}, err
+	}
+	return cursor.ResolveRuntimeProfile(cfg.Cursor.UserDataDir)
+}
+
 // ApplyCursorSettings 用于处理与 ApplyCursorSettings 相关的逻辑。
 func (s *ProxyService) ApplyCursorSettings() error {
 	if s == nil || s.proxy == nil {
 		return fmt.Errorf("proxy is not initialized")
+	}
+	profile, err := s.cursorRuntimeProfile()
+	if err != nil {
+		return fmt.Errorf("resolve cursor profile: %w", err)
 	}
 	s.caFileMu.Lock()
 	caCertPath, err := cursor.EnsureCACertFile(s.caCertPEM, s.caFilePath)
@@ -36,7 +48,7 @@ func (s *ProxyService) ApplyCursorSettings() error {
 		}
 	}
 
-	if err := cursor.WriteUserProxySettings(cursor.ProxyURLFromListenAddr(s.proxy.Snapshot().ListenAddr)); err != nil {
+	if err := cursor.WriteUserProxySettings(profile, cursor.ProxyURLFromListenAddr(s.proxy.Snapshot().ListenAddr)); err != nil {
 		return err
 	}
 	s.setCursorSettingsApplied(true)
@@ -45,12 +57,16 @@ func (s *ProxyService) ApplyCursorSettings() error {
 
 // ClearCursorSettings 用于处理与 ClearCursorSettings 相关的逻辑。
 func (s *ProxyService) ClearCursorSettings() error {
+	profile, err := s.cursorRuntimeProfile()
+	if err != nil {
+		return fmt.Errorf("resolve cursor profile: %w", err)
+	}
 	if goruntime.GOOS == "darwin" {
 		if err := cursor.ClearSystemNodeExtraCACerts(); err != nil {
 			return err
 		}
 	}
-	if err := cursor.ClearUserProxySettings(); err != nil {
+	if err := cursor.ClearUserProxySettings(profile); err != nil {
 		return err
 	}
 	s.setCursorSettingsApplied(false)

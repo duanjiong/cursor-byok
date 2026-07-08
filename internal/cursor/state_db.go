@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -21,9 +20,6 @@ const (
 	cursorStateSubscriptionStatus  = "active"
 	cursorStateDefaultSignUpType   = "Google"
 	cursorStateSQLiteBusyTimeoutMS = 2000
-	cursorStateDBRelativePath      = "Cursor/User/globalStorage/state.vscdb"
-	cursorStateDarwinRelativePath  = "Library/Application Support/Cursor/User/globalStorage/state.vscdb"
-	cursorStateLinuxRelativePath   = ".config/Cursor/User/globalStorage/state.vscdb"
 	cursorStateStatsigBootstrapKey = "workbench.experiments.statsigBootstrap"
 )
 
@@ -34,8 +30,8 @@ var cursorStateDisabledStatsigGates = []string{
 
 // InjectCursorUserInfo synchronizes the Cursor user-level auth cache used by the
 // Settings page. It does not modify the installed Cursor app bundle.
-func InjectCursorUserInfo(email, token string) error {
-	stateDBPath, err := resolveCursorStateDBPath()
+func InjectCursorUserInfo(profile RuntimeProfile, email, token string) error {
+	stateDBPath, err := profile.StateDBPath()
 	if err != nil {
 		return err
 	}
@@ -194,28 +190,3 @@ func cursorStateDJB2Hash(value string) string {
 	return fmt.Sprintf("%d", hash)
 }
 
-func resolveCursorStateDBPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("获取用户目录失败: %w", err)
-	}
-
-	switch runtime.GOOS {
-	case "darwin":
-		return filepath.Join(homeDir, filepath.FromSlash(cursorStateDarwinRelativePath)), nil
-	case "windows":
-		appData := strings.TrimSpace(os.Getenv("APPDATA"))
-		if appData == "" {
-			appData = filepath.Join(homeDir, "AppData", "Roaming")
-		}
-		return filepath.Join(appData, "Cursor", "User", "globalStorage", "state.vscdb"), nil
-	case "linux":
-		configDir := strings.TrimSpace(os.Getenv("XDG_CONFIG_HOME"))
-		if configDir == "" {
-			return filepath.Join(homeDir, filepath.FromSlash(cursorStateLinuxRelativePath)), nil
-		}
-		return filepath.Join(configDir, filepath.FromSlash(cursorStateDBRelativePath)), nil
-	default:
-		return "", fmt.Errorf("不支持的系统: %s", runtime.GOOS)
-	}
-}

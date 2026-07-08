@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"cursor/internal/cursor"
 	"cursor/internal/modelchannel"
 )
 
@@ -51,11 +52,16 @@ type HomeMetricsConfig struct {
 	IncludeCacheWriteInHitRate bool `json:"includeCacheWriteInHitRate" yaml:"includeCacheWriteInHitRate"`
 }
 
+type CursorConfig struct {
+	UserDataDir string `json:"userDataDir" yaml:"userDataDir"`
+}
+
 type Config struct {
 	Log                       bool                 `json:"log" yaml:"log"`
 	ProviderStreamIdleTimeout int                  `json:"providerStreamIdleTimeout" yaml:"providerStreamIdleTimeout"`
 	BackendListenAddr         string               `json:"backendListenAddr" yaml:"backendListenAddr"`
 	ProxyListenAddr           string               `json:"proxyListenAddr" yaml:"proxyListenAddr"`
+	Cursor                    CursorConfig         `json:"cursor" yaml:"cursor"`
 	ModelAdapters             []ModelAdapterConfig `json:"modelAdapters" yaml:"modelAdapters"`
 	Routing                   RoutingConfig        `json:"routing" yaml:"routing"`
 	HomeMetrics               HomeMetricsConfig    `json:"homeMetrics" yaml:"homeMetrics"`
@@ -89,6 +95,11 @@ func NormalizeConfig(input Config) (Config, error) {
 	}
 	output.BackendListenAddr = backendListenAddr
 	output.ProxyListenAddr = proxyListenAddr
+	cursorConfig, err := normalizeCursorConfig(input.Cursor)
+	if err != nil {
+		return Config{}, err
+	}
+	output.Cursor = cursorConfig
 	output.HomeMetrics.IncludeCacheWriteInHitRate = input.HomeMetrics.IncludeCacheWriteInHitRate
 	output.LastAgentModelHash = strings.TrimSpace(input.LastAgentModelHash)
 	output.Routing.Mode = normalizeRoutingMode(input.Routing.Mode)
@@ -290,4 +301,22 @@ func normalizeRoutingMode(value string) string {
 	default:
 		return ""
 	}
+}
+
+func normalizeCursorConfig(input CursorConfig) (CursorConfig, error) {
+	dir := strings.TrimSpace(input.UserDataDir)
+	if dir == "" {
+		defaultDir, err := cursor.DefaultBYOKUserDataDir()
+		if err != nil {
+			return CursorConfig{}, err
+		}
+		dir = defaultDir
+	} else {
+		expanded, err := cursor.ExpandUserDataDir(dir)
+		if err != nil {
+			return CursorConfig{}, fmt.Errorf("cursor.userDataDir 无效: %w", err)
+		}
+		dir = expanded
+	}
+	return CursorConfig{UserDataDir: dir}, nil
 }

@@ -118,13 +118,13 @@ func ClearSystemNodeExtraCACerts() error {
 }
 
 // WriteUserProxySettings 用于处理与 WriteUserProxySettings 相关的逻辑。
-func WriteUserProxySettings(proxyURL string) error {
+func WriteUserProxySettings(profile RuntimeProfile, proxyURL string) error {
 	proxyURL = strings.TrimSpace(proxyURL)
 	if proxyURL == "" {
 		return errors.New("代理地址为空")
 	}
 
-	settingsPath, err := resolveCursorSettingsPath()
+	settingsPath, err := profile.SettingsPath()
 	if err != nil {
 		return err
 	}
@@ -181,8 +181,8 @@ func WriteUserProxySettings(proxyURL string) error {
 }
 
 // ClearUserProxySettings 用于处理与 ClearUserProxySettings 相关的逻辑。
-func ClearUserProxySettings() error {
-	settingsPath, err := resolveCursorSettingsPath()
+func ClearUserProxySettings(profile RuntimeProfile) error {
+	settingsPath, err := profile.SettingsPath()
 	if err != nil {
 		return err
 	}
@@ -232,33 +232,6 @@ func ClearUserProxySettings() error {
 
 	logger.Infof("clearCursorUserProxySettings: path=%s", settingsPath)
 	return nil
-}
-
-// resolveCursorSettingsPath 用于处理与 resolveCursorSettingsPath 相关的逻辑。
-func resolveCursorSettingsPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("获取用户目录失败: %w", err)
-	}
-
-	switch runtime.GOOS {
-	case "darwin":
-		return filepath.Join(homeDir, "Library", "Application Support", "Cursor", "User", "settings.json"), nil
-	case "windows":
-		appData := os.Getenv("APPDATA")
-		if strings.TrimSpace(appData) == "" {
-			appData = filepath.Join(homeDir, "AppData", "Roaming")
-		}
-		return filepath.Join(appData, "Cursor", "User", "settings.json"), nil
-	case "linux":
-		configDir := os.Getenv("XDG_CONFIG_HOME")
-		if strings.TrimSpace(configDir) == "" {
-			configDir = filepath.Join(homeDir, ".config")
-		}
-		return filepath.Join(configDir, "Cursor", "User", "settings.json"), nil
-	default:
-		return "", fmt.Errorf("不支持的系统: %s", runtime.GOOS)
-	}
 }
 
 // decodeCursorSettingsJSONC 用于处理与 decodeCursorSettingsJSONC 相关的逻辑。
