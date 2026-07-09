@@ -513,7 +513,7 @@ func (adapter *OpenAIAdapter) streamChatCompletions(ctx context.Context, req Str
 		return httpReq, nil
 	}
 
-	resp, err := doProviderRequestWithRetry(streamCtx, adapter.client, "openai", req.RequestID, req.ModelCallID, buildHTTPRequest)
+	resp, err := doProviderRequestWithRetry(streamCtx, netproxy.ProviderHTTPClient(0, req.InsecureSkipTLS), "openai", req.RequestID, req.ModelCallID, buildHTTPRequest)
 	if err != nil {
 		if idleErr := streamIdle.Err(); idleErr != nil {
 			err = idleErr
@@ -992,7 +992,7 @@ func (adapter *OpenAIAdapter) streamResponses(ctx context.Context, req StreamReq
 		return httpReq, nil
 	}
 
-	resp, err := doProviderRequestWithRetry(streamCtx, adapter.client, "openai", req.RequestID, req.ModelCallID, buildHTTPRequest)
+	resp, err := doProviderRequestWithRetry(streamCtx, netproxy.ProviderHTTPClient(0, req.InsecureSkipTLS), "openai", req.RequestID, req.ModelCallID, buildHTTPRequest)
 	if err != nil {
 		if idleErr := streamIdle.Err(); idleErr != nil {
 			err = idleErr

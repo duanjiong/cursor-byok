@@ -37,6 +37,7 @@ type ModelAdapterConfig struct {
 	OpenAIExtraParamsJSON       string `json:"openAIExtraParamsJSON" yaml:"openAIExtraParamsJSON"`
 	CustomHeadersEnabled        bool   `json:"customHeadersEnabled" yaml:"customHeadersEnabled"`
 	CustomHeadersJSON           string `json:"customHeadersJSON" yaml:"customHeadersJSON"`
+	InsecureSkipTLS             bool   `json:"insecureSkipTLS" yaml:"insecureSkipTLS"`
 	AnthropicExtraParamsEnabled bool   `json:"anthropicExtraParamsEnabled" yaml:"anthropicExtraParamsEnabled"`
 	AnthropicExtraParamsJSON    string `json:"anthropicExtraParamsJSON" yaml:"anthropicExtraParamsJSON"`
 	ContextWindowTokens         int    `json:"contextWindowTokens" yaml:"contextWindowTokens"`
@@ -160,6 +161,7 @@ func NormalizeModelAdapterConfigs(input []ModelAdapterConfig) ([]ModelAdapterCon
 		}
 		next.CustomHeadersEnabled = item.CustomHeadersEnabled
 		next.CustomHeadersJSON = strings.TrimSpace(item.CustomHeadersJSON)
+		next.InsecureSkipTLS = item.InsecureSkipTLS
 		switch {
 		case next.DisplayName == "":
 			return nil, errors.New("模型适配器 displayName 不能为空")

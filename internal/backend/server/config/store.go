@@ -141,7 +141,12 @@ func (store *Store) loadLocked() (Config, error) {
 }
 
 func (store *Store) saveLocked(normalized Config) error {
-	if err := os.MkdirAll(filepath.Dir(store.path), 0o755); err != nil {
+	writePath, err := resolveConfigWritePath(store.path)
+	if err != nil {
+		return fmt.Errorf("解析配置写入路径失败: %w", err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(writePath), 0o755); err != nil {
 		return fmt.Errorf("创建用户配置目录失败: %w", err)
 	}
 
@@ -150,14 +155,43 @@ func (store *Store) saveLocked(normalized Config) error {
 		return fmt.Errorf("序列化用户配置失败: %w", err)
 	}
 
-	tempPath := store.path + ".tmp"
+	tempPath := writePath + ".tmp"
 	if err := os.WriteFile(tempPath, data, 0o644); err != nil {
 		return fmt.Errorf("写入临时配置失败: %w", err)
 	}
-	if err := os.Rename(tempPath, store.path); err != nil {
+	if err := os.Rename(tempPath, writePath); err != nil {
 		return fmt.Errorf("保存用户配置失败: %w", err)
 	}
 	return nil
+}
+
+// resolveConfigWritePath 返回实际应写入的配置文件路径。
+// 当 store.path 是软链接时，写入链接目标文件，避免 rename 覆盖软链接本身。
+func resolveConfigWritePath(path string) (string, error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "", errors.New("配置路径为空")
+	}
+
+	info, err := os.Lstat(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return path, nil
+		}
+		return "", err
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		return path, nil
+	}
+
+	target, err := os.Readlink(path)
+	if err != nil {
+		return "", err
+	}
+	if !filepath.IsAbs(target) {
+		target = filepath.Join(filepath.Dir(path), target)
+	}
+	return filepath.Clean(target), nil
 }
 
 func shouldPersistNormalizedConfig(raw []byte, current Config, normalized Config) bool {

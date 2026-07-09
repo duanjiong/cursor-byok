@@ -28,6 +28,7 @@ func (store *Store) LegacyRuntimeSnapshot(ctx context.Context) (legacyruntime.Ru
 			OpenAIExtraParamsJSON:       item.OpenAIExtraParamsJSON,
 			CustomHeadersEnabled:        item.CustomHeadersEnabled,
 			CustomHeadersJSON:           item.CustomHeadersJSON,
+			InsecureSkipTLS:             item.InsecureSkipTLS,
 			AnthropicExtraParamsEnabled: item.AnthropicExtraParamsEnabled,
 			AnthropicExtraParamsJSON:    item.AnthropicExtraParamsJSON,
 			ContextWindowTokens:         item.ContextWindowTokens,

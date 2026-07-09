@@ -252,6 +252,7 @@ func (s *ProxyService) executeOpenAIStreamingTest(ctx context.Context, adapter s
 		OpenAIExtraParamsJSON:       strings.TrimSpace(adapter.OpenAIExtraParamsJSON),
 		CustomHeadersEnabled:        adapter.CustomHeadersEnabled,
 		CustomHeadersJSON:           strings.TrimSpace(adapter.CustomHeadersJSON),
+		InsecureSkipTLS:             adapter.InsecureSkipTLS,
 		Messages:                    []modeladapter.Message{{Role: "user", Content: modelAdapterTestPrompt}},
 		MaxTokens:                   maxTokens,
 		Stream:                      true,
@@ -318,6 +319,7 @@ func (s *ProxyService) executeAnthropicStreamingTest(ctx context.Context, adapte
 		AnthropicThinkingEffort:     thinkingEffort,
 		CustomHeadersEnabled:        adapter.CustomHeadersEnabled,
 		CustomHeadersJSON:           strings.TrimSpace(adapter.CustomHeadersJSON),
+		InsecureSkipTLS:             adapter.InsecureSkipTLS,
 		AnthropicExtraParamsEnabled: adapter.AnthropicExtraParamsEnabled,
 		AnthropicExtraParamsJSON:    strings.TrimSpace(adapter.AnthropicExtraParamsJSON),
 		ThinkingBudgetTokens:        adapter.ThinkingBudgetTokens,
@@ -598,6 +600,7 @@ func buildModelAdapterTestRequestHash(adapter serverconfig.ModelAdapterConfig) s
 		source.OpenAIExtraParamsJSON,
 		strconv.Itoa(source.CustomHeadersEnabled),
 		source.CustomHeadersJSON,
+		strconv.Itoa(source.InsecureSkipTLS),
 		strconv.Itoa(source.AnthropicExtraParamsEnabled),
 		source.AnthropicExtraParamsJSON,
 		strconv.Itoa(source.ContextWindowTokens),
@@ -622,6 +625,7 @@ type modelAdapterTestHashSource struct {
 	OpenAIExtraParamsJSON       string
 	CustomHeadersEnabled        int
 	CustomHeadersJSON           string
+	InsecureSkipTLS             int
 	AnthropicExtraParamsEnabled int
 	AnthropicExtraParamsJSON    string
 	ContextWindowTokens         int
@@ -646,6 +650,7 @@ func normalizeModelAdapterTestHashSource(adapter serverconfig.ModelAdapterConfig
 		OpenAIExtraParamsJSON:       normalizeModelAdapterTestOpenAIExtraParamsJSON(adapter),
 		CustomHeadersEnabled:        normalizeModelAdapterTestBool(adapter.CustomHeadersEnabled),
 		CustomHeadersJSON:           normalizeModelAdapterTestCustomHeadersJSON(adapter),
+		InsecureSkipTLS:             normalizeModelAdapterTestBool(adapter.InsecureSkipTLS),
 		AnthropicExtraParamsEnabled: normalizeModelAdapterTestBool(adapter.Type == "anthropic" && adapter.AnthropicExtraParamsEnabled),
 		AnthropicExtraParamsJSON:    normalizeModelAdapterTestAnthropicExtraParamsJSON(adapter),
 		ContextWindowTokens:         normalizeModelAdapterTestInt(adapter.ContextWindowTokens),

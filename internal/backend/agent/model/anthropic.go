@@ -317,7 +317,7 @@ func (adapter *AnthropicAdapter) Stream(ctx context.Context, req StreamRequest, 
 		return httpReq, nil
 	}
 
-	resp, err := doProviderRequestWithRetry(streamCtx, adapter.client, "anthropic", req.RequestID, req.ModelCallID, buildHTTPRequest)
+	resp, err := doProviderRequestWithRetry(streamCtx, netproxy.ProviderHTTPClient(0, req.InsecureSkipTLS), "anthropic", req.RequestID, req.ModelCallID, buildHTTPRequest)
 	if err != nil {
 		if idleErr := streamIdle.Err(); idleErr != nil {
 			err = idleErr

@@ -60,6 +60,8 @@ type ModelAdapterConfig struct {
 	CustomHeadersEnabled bool `json:"customHeadersEnabled"`
 	// CustomHeadersJSON 表示自定义请求头 JSON 对象。
 	CustomHeadersJSON string `json:"customHeadersJSON"`
+	// InsecureSkipTLS 表示是否跳过上游 HTTPS 证书校验。
+	InsecureSkipTLS bool `json:"insecureSkipTLS"`
 	// AnthropicExtraParamsEnabled 表示是否启用 Anthropic 额外请求参数。
 	AnthropicExtraParamsEnabled bool `json:"anthropicExtraParamsEnabled"`
 	// AnthropicExtraParamsJSON 表示 Anthropic 额外请求参数 JSON 对象。
@@ -126,6 +128,7 @@ func NormalizeModelAdapterConfigs(input []ModelAdapterConfig) ([]ModelAdapterCon
 		}
 		next.CustomHeadersEnabled = item.CustomHeadersEnabled
 		next.CustomHeadersJSON = strings.TrimSpace(item.CustomHeadersJSON)
+		next.InsecureSkipTLS = item.InsecureSkipTLS
 		switch {
 		case next.DisplayName == "":
 			return nil, errors.New("模型适配器 displayName 不能为空")
@@ -275,6 +278,8 @@ type ResolvedChannel struct {
 	CustomHeadersEnabled bool
 	// CustomHeadersJSON 表示自定义请求头 JSON 对象。
 	CustomHeadersJSON string
+	// InsecureSkipTLS 表示是否跳过上游 HTTPS 证书校验。
+	InsecureSkipTLS bool
 	// AnthropicExtraParamsEnabled 表示是否启用 Anthropic 额外请求参数。
 	AnthropicExtraParamsEnabled bool
 	// AnthropicExtraParamsJSON 表示 Anthropic 额外请求参数 JSON 对象。
@@ -403,6 +408,7 @@ func (s *FixedChannelService) SelectChannelForModel(ctx context.Context, modelID
 			OpenAIExtraParamsJSON:       strings.TrimSpace(adapter.OpenAIExtraParamsJSON),
 			CustomHeadersEnabled:        adapter.CustomHeadersEnabled,
 			CustomHeadersJSON:           strings.TrimSpace(adapter.CustomHeadersJSON),
+			InsecureSkipTLS:             adapter.InsecureSkipTLS,
 			AnthropicExtraParamsEnabled: adapter.AnthropicExtraParamsEnabled,
 			AnthropicExtraParamsJSON:    strings.TrimSpace(adapter.AnthropicExtraParamsJSON),
 			AnthropicMaxTokens:          configurableChannelMaxTokens,

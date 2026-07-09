@@ -61,6 +61,7 @@ func (router *Router) Stream(ctx context.Context, req StreamRequest, sink func(M
 	resolved.OpenAIExtraParamsJSON = strings.TrimSpace(channel.OpenAIExtraParamsJSON)
 	resolved.CustomHeadersEnabled = channel.CustomHeadersEnabled
 	resolved.CustomHeadersJSON = strings.TrimSpace(channel.CustomHeadersJSON)
+	resolved.InsecureSkipTLS = channel.InsecureSkipTLS
 	resolved.AnthropicExtraParamsEnabled = channel.AnthropicExtraParamsEnabled
 	resolved.AnthropicExtraParamsJSON = strings.TrimSpace(channel.AnthropicExtraParamsJSON)
 	resolved.AnthropicMaxTokens = channel.AnthropicMaxTokens

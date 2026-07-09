@@ -56,6 +56,7 @@ func resolveModelAdapterChannel(adapters []ModelAdapterConfig, requestedModel st
 		OpenAIExtraParamsJSON:       strings.TrimSpace(matched.OpenAIExtraParamsJSON),
 		CustomHeadersEnabled:        matched.CustomHeadersEnabled,
 		CustomHeadersJSON:           strings.TrimSpace(matched.CustomHeadersJSON),
+		InsecureSkipTLS:             matched.InsecureSkipTLS,
 		AnthropicExtraParamsEnabled: matched.AnthropicExtraParamsEnabled,
 		AnthropicExtraParamsJSON:    strings.TrimSpace(matched.AnthropicExtraParamsJSON),
 		TimeoutMS:                   defaultChannelTimeoutMS,

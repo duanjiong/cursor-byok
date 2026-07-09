@@ -1,6 +1,7 @@
 package netproxy
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,6 +27,7 @@ var (
 	initialDefaultTransport = cloneDefaultTransport()
 	defaultResolver         = &proxyResolver{}
 	proxyTransports         sync.Map
+	providerHTTPClients     sync.Map
 )
 
 // InstallDefaultTransport makes clients with a nil Transport use the same
@@ -44,6 +46,34 @@ func NewHTTPClient(timeout time.Duration) *http.Client {
 		Transport: NewTransport(nil),
 		Timeout:   timeout,
 	}
+}
+
+// ProviderHTTPClient returns a shared HTTP client for upstream provider calls.
+// When insecureSkipTLS is true, server certificate verification is disabled.
+func ProviderHTTPClient(timeout time.Duration, insecureSkipTLS bool) *http.Client {
+	if cached, ok := providerHTTPClients.Load(insecureSkipTLS); ok {
+		if client, ok := cached.(*http.Client); ok && client != nil {
+			return client
+		}
+	}
+	client := NewHTTPClient(timeout)
+	if insecureSkipTLS {
+		base, ok := client.Transport.(*http.Transport)
+		if !ok || base == nil {
+			base = NewTransport(nil)
+		}
+		transport := base.Clone()
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true, // #nosec G402 -- explicit per-adapter operator opt-in
+		}
+		client.Transport = transport
+		proxyTransports.Store(transport, struct{}{})
+	}
+	actual, _ := providerHTTPClients.LoadOrStore(insecureSkipTLS, client)
+	if stored, ok := actual.(*http.Client); ok && stored != nil {
+		return stored
+	}
+	return client
 }
 
 // NewTransport clones the given transport and installs proxy resolution on it.

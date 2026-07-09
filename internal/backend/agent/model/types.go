@@ -102,6 +102,8 @@ type StreamRequest struct {
 	CustomHeadersEnabled bool
 	// CustomHeadersJSON 表示自定义请求头 JSON 对象。
 	CustomHeadersJSON string
+	// InsecureSkipTLS 表示是否跳过上游 HTTPS 证书校验。
+	InsecureSkipTLS bool
 	// AnthropicExtraParamsEnabled 表示是否启用 Anthropic 额外请求参数。
 	AnthropicExtraParamsEnabled bool
 	// AnthropicExtraParamsJSON 表示 Anthropic 额外请求参数 JSON 对象。
