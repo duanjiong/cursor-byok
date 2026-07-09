@@ -101,18 +101,43 @@ func (store *Store) Save(_ context.Context, cfg Config) (Config, error) {
 		return Config{}, errors.New("配置存储未初始化")
 	}
 
-	normalized, err := NormalizeConfig(cfg)
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
+	merged := cfg
+	if existing, err := store.loadLocked(); err == nil {
+		if strings.TrimSpace(cfg.TabServerBaseURL) == "" && strings.TrimSpace(existing.TabServerBaseURL) != "" {
+			merged.TabServerBaseURL = existing.TabServerBaseURL
+		}
+	}
+
+	normalized, err := NormalizeConfig(merged)
 	if err != nil {
 		return Config{}, err
 	}
-
-	store.mu.Lock()
-	defer store.mu.Unlock()
 
 	if err := store.saveLocked(normalized); err != nil {
 		return Config{}, err
 	}
 	return normalized, nil
+}
+
+func (store *Store) loadLocked() (Config, error) {
+	if store == nil || strings.TrimSpace(store.path) == "" {
+		return DefaultConfig(), nil
+	}
+	data, err := os.ReadFile(store.path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return DefaultConfig(), nil
+		}
+		return Config{}, fmt.Errorf("读取用户配置失败: %w", err)
+	}
+	var current Config
+	if err := yaml.Unmarshal(data, &current); err != nil {
+		return Config{}, fmt.Errorf("解析用户配置失败: %w", err)
+	}
+	return NormalizeConfig(current)
 }
 
 func (store *Store) saveLocked(normalized Config) error {

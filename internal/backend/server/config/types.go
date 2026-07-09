@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -19,6 +20,7 @@ const (
 	DefaultRoutingMode                      = "local"
 	DefaultProviderStreamIdleTimeoutSeconds = 240
 	MinProviderStreamIdleTimeoutSeconds     = 30
+	DefaultTabServerBaseURL                 = "https://tab.leokun.cn"
 )
 
 type ModelAdapterConfig struct {
@@ -61,6 +63,7 @@ type Config struct {
 	ProviderStreamIdleTimeout int                  `json:"providerStreamIdleTimeout" yaml:"providerStreamIdleTimeout"`
 	BackendListenAddr         string               `json:"backendListenAddr" yaml:"backendListenAddr"`
 	ProxyListenAddr           string               `json:"proxyListenAddr" yaml:"proxyListenAddr"`
+	TabServerBaseURL          string               `json:"tabServerBaseURL" yaml:"tabServerBaseURL"`
 	Cursor                    CursorConfig         `json:"cursor" yaml:"cursor"`
 	ModelAdapters             []ModelAdapterConfig `json:"modelAdapters" yaml:"modelAdapters"`
 	Routing                   RoutingConfig        `json:"routing" yaml:"routing"`
@@ -74,6 +77,7 @@ func DefaultConfig() Config {
 		ProviderStreamIdleTimeout: DefaultProviderStreamIdleTimeoutSeconds,
 		BackendListenAddr:         DefaultBackendListenAddr,
 		ProxyListenAddr:           DefaultProxyListenAddr,
+		TabServerBaseURL:          DefaultTabServerBaseURL,
 		ModelAdapters:             []ModelAdapterConfig{},
 		Routing: RoutingConfig{
 			Mode: DefaultRoutingMode,
@@ -95,6 +99,11 @@ func NormalizeConfig(input Config) (Config, error) {
 	}
 	output.BackendListenAddr = backendListenAddr
 	output.ProxyListenAddr = proxyListenAddr
+	tabServerBaseURL, err := normalizeTabServerBaseURL(input.TabServerBaseURL)
+	if err != nil {
+		return Config{}, err
+	}
+	output.TabServerBaseURL = tabServerBaseURL
 	cursorConfig, err := normalizeCursorConfig(input.Cursor)
 	if err != nil {
 		return Config{}, err
@@ -301,6 +310,30 @@ func normalizeRoutingMode(value string) string {
 	default:
 		return ""
 	}
+}
+
+func normalizeTabServerBaseURL(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return DefaultTabServerBaseURL, nil
+	}
+	parsed, err := url.Parse(trimmed)
+	if err != nil {
+		return "", fmt.Errorf("tabServerBaseURL 不是合法 URL")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("tabServerBaseURL 仅支持 http 或 https")
+	}
+	if strings.TrimSpace(parsed.Host) == "" {
+		return "", fmt.Errorf("tabServerBaseURL 缺少主机名")
+	}
+	parsed.Scheme = strings.ToLower(strings.TrimSpace(parsed.Scheme))
+	parsed.Host = strings.TrimSpace(parsed.Host)
+	parsed.Path = strings.TrimRight(parsed.Path, "/")
+	parsed.RawPath = ""
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return parsed.String(), nil
 }
 
 func normalizeCursorConfig(input CursorConfig) (CursorConfig, error) {
