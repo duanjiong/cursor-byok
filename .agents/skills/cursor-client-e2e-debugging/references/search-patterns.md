@@ -52,11 +52,11 @@
 
 当现象涉及 agent 主循环、模型桥接、`InteractionUpdate` 映射、工具 started/completed、session/provider 状态：
 
-优先在已安装客户端 split bundle 中搜索：
+优先在 **Cursor BYOK.app** split bundle 中搜索（`BYOK_APP=/Applications/Cursor BYOK.app/Contents/Resources/app`）：
 
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent-exec/dist/main.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent-exec/dist/*.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent-worker/dist/main.js`
+- `$BYOK_APP/extensions/cursor-agent-exec/dist/main.js`
+- `$BYOK_APP/extensions/cursor-agent-exec/dist/*.js`
+- `$BYOK_APP/extensions/cursor-agent-worker/dist/main.js`
 
 优先搜索：
 
@@ -74,18 +74,19 @@
 - `InteractionUpdate`
 - `checkpoint`
 
-旧路径 `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent/dist/main.js` 可能不存在。先确认实际 `extensions/` 结构，再按 `cursor-agent-exec` / `cursor-agent-worker` / `cursor-always-local` 分层排查。
+旧路径 `$BYOK_APP/extensions/cursor-agent/dist/main.js` 可能不存在。先确认实际 `extensions/` 结构，再按 `cursor-agent-exec` / `cursor-agent-worker` / `cursor-always-local` 分层排查。
 
 ### agent window / conversation metadata UI 层
 
 当现象涉及 agent window 标题、窗口信息、titlebar 按钮、是否可点击修改、会话名/metadata 更新：
 
-优先在已安装客户端主 UI 和 split bundle 中搜索：
+优先在 **Cursor BYOK.app** 主 UI 和 split bundle 中搜索：
 
-- `/Applications/Cursor.app/Contents/Resources/app/out/vs/workbench/workbench.desktop.main.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent-exec/dist/main.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent-exec/dist/*.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-always-local/dist/main.js`
+- `$BYOK_APP/out/vs/workbench/workbench.desktop.main.js`
+- `$BYOK_APP/out/vs/workbench/workbench.glass.main.js`
+- `$BYOK_APP/extensions/cursor-agent-exec/dist/main.js`
+- `$BYOK_APP/extensions/cursor-agent-exec/dist/*.js`
+- `$BYOK_APP/extensions/cursor-always-local/dist/main.js`
 
 优先搜索：
 

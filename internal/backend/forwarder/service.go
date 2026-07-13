@@ -556,6 +556,8 @@ func (service *Service) decodeInboundIntent(requestID string, message *agentv1.A
 		intent.ConversationID = conversationID
 		intent.ConversationState = runRequest.GetConversationState()
 		intent.UserMessage = extractUserMessage(message)
+		intent.PrependUserMessages = extractPrependUserMessages(message)
+		intent.ConversationHistory = extractConversationHistory(message)
 		intent.RequestContext = extractRequestContext(message)
 		if service.shouldIgnoreEmptyResumeRunRequest(requestID, runRequest, intent.UserMessage, intent.RequestContext) {
 			intent.Kind = "metadata"
@@ -2497,6 +2499,30 @@ func extractUserMessage(message *agentv1.AgentClientMessage) *agentv1.UserMessag
 		return item.UserMessageAction.GetUserMessage()
 	case *agentv1.ConversationAction_StartPlanAction:
 		return item.StartPlanAction.GetUserMessage()
+	default:
+		return nil
+	}
+}
+
+func extractPrependUserMessages(message *agentv1.AgentClientMessage) []*agentv1.UserMessage {
+	if message == nil || message.GetRunRequest() == nil || message.GetRunRequest().GetAction() == nil {
+		return nil
+	}
+	switch item := message.GetRunRequest().GetAction().GetAction().(type) {
+	case *agentv1.ConversationAction_UserMessageAction:
+		return item.UserMessageAction.GetPrependUserMessages()
+	default:
+		return nil
+	}
+}
+
+func extractConversationHistory(message *agentv1.AgentClientMessage) *agentv1.ConversationHistory {
+	if message == nil || message.GetRunRequest() == nil || message.GetRunRequest().GetAction() == nil {
+		return nil
+	}
+	switch item := message.GetRunRequest().GetAction().GetAction().(type) {
+	case *agentv1.ConversationAction_UserMessageAction:
+		return item.UserMessageAction.GetConversationHistory()
 	default:
 		return nil
 	}

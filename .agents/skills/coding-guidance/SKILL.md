@@ -20,21 +20,29 @@ description: 本地模式实现指南
 本地模式协议需要优先核对这些文件：
 - proto/agent_v1.proto
 - proto/aiserver_v1.proto
-客户端是：/Users/leokun/Library/Application\ Support/Cursor 
-客户端 bundle 是：/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-always-local/dist/main.js
+
+**本仓库默认客户端（勿与官方 Cursor.app 混淆）：**
+
+| 项 | 路径 |
+|----|------|
+| 客户端 app | `/Applications/Cursor BYOK.app` |
+| 客户端 user data | `~/Library/Application Support/Cursor-BYOK/` |
+| renderer 日志 | `~/Library/Application Support/Cursor-BYOK/logs/<session>/window1/renderer.log` |
+| 本地 backend / history | `~/.cursor-local-assistant-v2/` |
+| always-local bundle | `/Applications/Cursor BYOK.app/Contents/Resources/app/extensions/cursor-always-local/dist/main.js` |
 
 ## Cursor 客户端格式化快照
 
 - 如果用户要求提取、格式化、刷新或规范化 Cursor.app 快照流程，使用 `cursor-app-formatted` skill。
 - 如果本仓库存在 `.cursor-app-formatted/`，排查客户端 bundle 时优先读取这里的格式化副本。
-- `.cursor-app-formatted/` 是从 `/Applications/Cursor.app/Contents/Resources/app` 只读提取后格式化生成的本地快照；它不应写回、替换或影响已安装的 Cursor.app。
+- `.cursor-app-formatted/` 默认从 **`/Applications/Cursor BYOK.app/Contents/Resources/app`** 只读提取（本仓库）；不应写回或替换已安装 app。
 - 常用格式化路径：
   - `.cursor-app-formatted/extensions/cursor-always-local/dist/main.js`
   - `.cursor-app-formatted/extensions/cursor-agent-exec/dist/main.js`
   - `.cursor-app-formatted/extensions/cursor-agent-worker/dist/main.js`
   - `.cursor-app-formatted/out/vs/workbench/workbench.desktop.main.js`
   - `.cursor-app-formatted/out/vs/workbench/api/node/extensionHostProcess.js`
-- 如果 `.cursor-app-formatted/` 不存在、明显过期，或需要核对真实安装包 hash，再只读读取 `/Applications/Cursor.app` 原始 bundle。
+- 如果 `.cursor-app-formatted/` 不存在、明显过期，或需要核对真实安装包 hash，再只读读取 **`/Applications/Cursor BYOK.app`** 原始 bundle（勿默认读 `/Applications/Cursor.app`）。
 
 ## 本仓库已固定的会话承接规则
 

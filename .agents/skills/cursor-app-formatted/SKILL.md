@@ -9,7 +9,7 @@ Use this skill whenever a task involves reading, searching, formatting, refreshi
 
 ## Invariants
 
-- Never modify `/Applications/Cursor.app`, any installed app bundle, signatures, or app copies.
+- Never modify **`/Applications/Cursor BYOK.app`**（本仓库默认客户端）、`/Applications/Cursor.app` 或任何已安装 app bundle、签名或副本。
 - Never patch bundled code under `.cursor-app-formatted/` as a fix target. It is an ignored investigation snapshot only.
 - If `.cursor-app-formatted/` is stale or wrong, regenerate it from the installed app instead of hand-editing its code.
 - Fixes should land in this repository's real source code, scripts, or docs, not in formatted snapshot code.
@@ -18,7 +18,7 @@ Use this skill whenever a task involves reading, searching, formatting, refreshi
 ## Preferred Investigation Flow
 
 1. If `.cursor-app-formatted/` exists, search and read that formatted snapshot first.
-2. Use `/Applications/Cursor.app` only for read-only authenticity checks, hash comparison, or when the snapshot is missing or stale.
+2. 本仓库默认从 **`/Applications/Cursor BYOK.app`** 提取快照；仅当用户明确使用其它 app 或 BYOK 不存在时，改用 `/Applications/Cursor.app` 等路径做只读核对。
 3. Prefer stable formatted paths for line references and control-flow reading:
    - `.cursor-app-formatted/extensions/cursor-always-local/dist/main.js`
    - `.cursor-app-formatted/extensions/cursor-agent-exec/dist/main.js`
@@ -45,7 +45,7 @@ Run from the repository root. This workflow copies only from the installed app i
 set -euo pipefail
 
 SNAPSHOT=.cursor-app-formatted
-SOURCE=/Applications/Cursor.app/Contents/Resources/app
+SOURCE="/Applications/Cursor BYOK.app/Contents/Resources/app"
 
 rm -rf "$SNAPSHOT"
 mkdir -p "$SNAPSHOT"

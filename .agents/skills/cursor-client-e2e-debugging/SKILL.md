@@ -9,11 +9,24 @@ description: Use when debugging Cursor client agent/local-mode/tool/backend-stor
 
 当用户遇到 provider 400/参数错误、SSE `event: error`、需要从 `debug/provider.jsonl` 抽取最终 provider body 并用 curl 独立复现时，也使用此技能。
 
+## 本仓库默认客户端（勿与官方 Cursor.app 混淆）
+
+cursor-byok 本地联调默认使用 **Cursor BYOK 专用 app**，不是 `/Applications/Cursor.app`：
+
+| 项 | 默认路径 |
+|----|----------|
+| 客户端 app | `/Applications/Cursor BYOK.app` |
+| 客户端 user data | `~/Library/Application Support/Cursor-BYOK/` |
+| renderer 日志 | `~/Library/Application Support/Cursor-BYOK/logs/<session>/window1/renderer.log` |
+| 本地 backend / history | `~/.cursor-local-assistant-v2/` |
+
+只读分析 bundle 时，优先在 **Cursor BYOK.app** 下搜索；仅当用户明确使用其它副本（如 `Cursor.app`、`Cursor Hooked.app`）或 BYOK app 不存在时，才改查对应路径。先 `pgrep -fal 'Cursor BYOK|Cursor.app'` 确认实际运行副本。
+
 ## 首要约束
 
 - 不要修改已安装的 Cursor 客户端代码、bundle、签名或 app 副本。
 - 允许且推荐读取、搜索、比对和分析客户端 bundle、日志、协议事件与本仓库实现。
-- 如果本仓库存在 `.cursor-app-formatted/`，优先读取这个格式化快照来搜索和引用客户端 bundle；只有在快照缺失、过期或需要 hash/真实性核对时，才只读读取 `/Applications/Cursor.app`。
+- 如果本仓库存在 `.cursor-app-formatted/`，优先读取这个格式化快照来搜索和引用客户端 bundle；只有在快照缺失、过期或需要 hash/真实性核对时，才只读读取 **`/Applications/Cursor BYOK.app`**（本仓库默认；勿默认读 `/Applications/Cursor.app`）。
 - 如果用户要求提取、格式化、刷新或规范化 Cursor.app 快照流程，使用 `cursor-app-formatted` skill；调查时可以读格式化代码，但不要 patch 格式化快照里的 bundle 代码。
 - 如果用户要求 patch 客户端做 e2e，要改成只读证据采集与差异定位，不执行客户端修改。
 - 当前本仓库已经重构为 `state.json + context.json` history-store；不要沿用旧 `data.sqlite`、`conversation.json`、`turns/<n>/request.json|sse.jsonl|summary.json` 排查路径。
@@ -57,7 +70,7 @@ description: Use when debugging Cursor client agent/local-mode/tool/backend-stor
    - 关注 `cache_read_tokens / prompt_tokens_total`，并检查 `context.json.items` 是否缺失、重复或顺序异常。
 8. 如果需要对照已安装 app 与仓库行为：
    - 只做只读核对与证据采集，不修改客户端 bundle / app 副本 / 签名。
-   - 优先用 `.cursor-app-formatted/` 中的格式化副本定位符号、行号和控制流；再按需只读核对 `/Applications/Cursor.app` 原始文件 hash 或运行副本。
+   - 优先用 `.cursor-app-formatted/` 中的格式化副本定位符号、行号和控制流；再按需只读核对 **`/Applications/Cursor BYOK.app`** 原始文件 hash 或运行副本。
    - 先确认实际运行的 app 副本和目标 bundle 路径。
    - 再读取 bundle 内容、日志、端口与 history 状态，并与本仓库实现对照。
 9. 如果证据显示问题更像是客户端 bundle 行为差异：

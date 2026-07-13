@@ -410,6 +410,8 @@ type InboundIntent struct {
 	SubagentTypeName         string
 	SubagentModelOverrides   map[string]runtimecore.SubagentModelOverrideSelection
 	ConversationState        *agentv1.ConversationStateStructure
+	PrependUserMessages      []*agentv1.UserMessage
+	ConversationHistory      *agentv1.ConversationHistory
 	UserMessage              *agentv1.UserMessage
 	RequestContext           *agentv1.RequestContext
 	ClientMessage            *agentv1.AgentClientMessage

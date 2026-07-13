@@ -45,65 +45,6 @@ func (snapshot turnUsageSnapshot) requestTokensTotal() int64 {
 	return snapshot.promptTokensTotal() + nonNegativeInt64(snapshot.OutputTokens)
 }
 
-func (service *Service) importConversationState(item *ConversationFile, state *agentv1.ConversationStateStructure) ([]HistoryEntry, error) {
-	if item == nil || state == nil {
-		return nil, nil
-	}
-	item.TokenDetailsUsedTokens = state.GetTokenDetails().GetUsedTokens()
-	entries := make([]HistoryEntry, 0, 2)
-	if messages, err := importedConversationStateModelMessages(state); err != nil {
-		return nil, err
-	} else {
-		for _, message := range messages {
-			entry, ok, err := newModelMessageEntry(0, "", message)
-			if err != nil {
-				return nil, err
-			}
-			if ok {
-				entries = append(entries, entry)
-			}
-		}
-	}
-	if len(entries) == 0 {
-		summary, ok, err := importedConversationStateSummary(state)
-		if err != nil {
-			return nil, err
-		}
-		if ok {
-			payload, err := json.Marshal(compactionSummaryEntryPayload{
-				Summary: strings.TrimSpace(summary),
-				Trigger: "imported_conversation_state",
-			})
-			if err != nil {
-				return nil, fmt.Errorf("encode imported summary context: %w", err)
-			}
-			entries = append(entries, HistoryEntry{
-				TurnSeq: 0,
-				Role:    "system",
-				Kind:    "compacted_summary",
-				Payload: payload,
-			})
-		}
-	}
-	runtimeState, ok, err := runtimeStatePayloadFromConversationState(state)
-	if err != nil {
-		return nil, err
-	}
-	if ok {
-		payload, err := json.Marshal(runtimeState)
-		if err != nil {
-			return nil, fmt.Errorf("encode imported runtime state context: %w", err)
-		}
-		entries = append(entries, HistoryEntry{
-			TurnSeq: 0,
-			Role:    "system",
-			Kind:    "runtime_state",
-			Payload: payload,
-		})
-	}
-	return entries, nil
-}
-
 func importedConversationStateModelMessages(state *agentv1.ConversationStateStructure) ([]modeladapter.Message, error) {
 	if state == nil {
 		return nil, nil

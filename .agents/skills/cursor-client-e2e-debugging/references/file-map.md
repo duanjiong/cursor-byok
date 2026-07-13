@@ -2,17 +2,29 @@
 
 ## 已安装客户端 bundle
 
+**cursor-byok 默认客户端：`/Applications/Cursor BYOK.app`**（不是 `/Applications/Cursor.app`）。下文路径以 `$BYOK_APP` 表示：
+
+```text
+BYOK_APP=/Applications/Cursor BYOK.app/Contents/Resources/app
+```
+
 优先核对这些实际运行中的客户端文件：
 
-- `/Applications/Cursor.app/Contents/Resources/app/out/vs/workbench/workbench.desktop.main.js`
-- `/Applications/Cursor.app/Contents/Resources/app/out/vs/workbench/api/node/extensionHostProcess.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-always-local/dist/main.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-always-local/dist/gitWorker.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent-exec/dist/main.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent-exec/dist/*.js`
-- `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent-worker/dist/main.js`
+- `$BYOK_APP/out/vs/workbench/workbench.desktop.main.js`
+- `$BYOK_APP/out/vs/workbench/workbench.glass.main.js`
+- `$BYOK_APP/out/vs/workbench/api/node/extensionHostProcess.js`
+- `$BYOK_APP/extensions/cursor-always-local/dist/main.js`
+- `$BYOK_APP/extensions/cursor-always-local/dist/gitWorker.js`
+- `$BYOK_APP/extensions/cursor-agent-exec/dist/main.js`
+- `$BYOK_APP/extensions/cursor-agent-exec/dist/*.js`
+- `$BYOK_APP/extensions/cursor-agent-worker/dist/main.js`
 
-当前安装包里 `cursor-agent` 已拆成 split bundle；旧路径 `/Applications/Cursor.app/Contents/Resources/app/extensions/cursor-agent/dist/main.js` 通常不存在。不要按旧路径下结论；需要先列出 `extensions/`，再确认实际存在的 `cursor-agent-exec`、`cursor-agent-worker`、`cursor-always-local` 及其 `dist/` 文件。
+客户端 user data 与 renderer 日志：
+
+- `~/Library/Application Support/Cursor-BYOK/`
+- `~/Library/Application Support/Cursor-BYOK/logs/<session>/window1/renderer.log`
+
+当前安装包里 `cursor-agent` 已拆成 split bundle；旧路径 `$BYOK_APP/extensions/cursor-agent/dist/main.js` 通常不存在。不要按旧路径下结论；需要先列出 `extensions/`，再确认实际存在的 `cursor-agent-exec`、`cursor-agent-worker`、`cursor-always-local` 及其 `dist/` 文件。
 
 大致归属：
 
@@ -23,10 +35,11 @@
 
 用户机器上可能还存在其它 app 副本，例如：
 
+- `/Applications/Cursor.app`（官方版，**非** cursor-byok 默认）
 - `~/Applications/Cursor Hooked.app`
 - `/Applications/Cursor Patched.app`
 
-不要假设哪一个在跑，先看进程路径。
+不要假设哪一个在跑；本仓库优先 **`Cursor BYOK.app`**，并用 `pgrep -fal 'Cursor BYOK|Cursor.app'` 确认进程。
 
 ## 当前 backend/store 与 history
 
