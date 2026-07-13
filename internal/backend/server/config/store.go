@@ -109,6 +109,8 @@ func (store *Store) Save(_ context.Context, cfg Config) (Config, error) {
 		if strings.TrimSpace(cfg.TabServerBaseURL) == "" && strings.TrimSpace(existing.TabServerBaseURL) != "" {
 			merged.TabServerBaseURL = existing.TabServerBaseURL
 		}
+		// 广告开关仅通过 config.yaml 配置，前端保存时保留磁盘上的 ads 段。
+		merged.Ads = existing.Ads
 	}
 
 	normalized, err := NormalizeConfig(merged)

@@ -24,8 +24,6 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-const checkInterval = 20 * time.Minute
-
 type State string
 
 const (
@@ -89,7 +87,6 @@ func NewManager(app *application.App) *Manager {
 
 func (m *Manager) Start() {
 	m.emitState(StateIdle, nil, "", "", false, "")
-	go m.loop()
 }
 
 func (m *Manager) Shutdown() {
@@ -102,22 +99,6 @@ func (m *Manager) CheckNow(manual bool) {
 
 func (m *Manager) InstallReadyUpdate() error {
 	return m.installReadyUpdate()
-}
-
-func (m *Manager) loop() {
-	m.checkNow(false)
-
-	ticker := time.NewTicker(checkInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-m.ctx.Done():
-			return
-		case <-ticker.C:
-			m.checkNow(false)
-		}
-	}
 }
 
 func (m *Manager) checkNow(manual bool) {

@@ -35,6 +35,7 @@ const (
 type MetricsProvider func(context.Context) (MetricsSnapshot, error)
 type ProviderCountProvider func(context.Context) (int, error)
 type DeviceIDProvider func() (string, error)
+type UserEnabledProvider func() bool
 
 type Options struct {
 	StoreRoot     string
@@ -44,6 +45,7 @@ type Options struct {
 	DeviceID      DeviceIDProvider
 	Metrics       MetricsProvider
 	ProviderCount ProviderCountProvider
+	UserEnabled   UserEnabledProvider
 }
 
 type Service struct {
@@ -54,6 +56,7 @@ type Service struct {
 	deviceID      DeviceIDProvider
 	metrics       MetricsProvider
 	providerCount ProviderCountProvider
+	userEnabled   UserEnabledProvider
 
 	assetBaseURLMu sync.RWMutex
 	refreshMu      sync.Mutex
@@ -117,7 +120,15 @@ func NewService(options Options) *Service {
 		deviceID:      options.DeviceID,
 		metrics:       options.Metrics,
 		providerCount: options.ProviderCount,
+		userEnabled:   options.UserEnabled,
 	}
+}
+
+func (service *Service) userAdsEnabled() bool {
+	if service == nil || service.userEnabled == nil {
+		return false
+	}
+	return service.userEnabled()
 }
 
 func (service *Service) SetAssetBaseURL(rawURL string) bool {
@@ -156,6 +167,10 @@ func (service *Service) Refresh(parent context.Context) (Runtime, bool, error) {
 	}
 	service.refreshMu.Lock()
 	defer service.refreshMu.Unlock()
+	if !service.userAdsEnabled() {
+		runtimeState, err := service.GetRuntime(context.Background())
+		return runtimeState, false, err
+	}
 	ctx, cancel := context.WithTimeout(parent, defaultFetchTimeout)
 	defer cancel()
 	result, err := service.FetchOnce(ctx)
@@ -300,7 +315,7 @@ func (service *Service) getSlotRuntime(ctx context.Context, slotID string) (Slot
 		return runtimeState, nil
 	}
 	runtimeState.Available = true
-	runtimeState.Enabled = cfg.Enabled
+	runtimeState.Enabled = cfg.Enabled && service.userAdsEnabled()
 	runtimeState.PackageHash = strings.TrimSpace(inspection.pkg.Hash)
 	runtimeState.Window = cfg.Window
 	runtimeState.Home = cfg.Home

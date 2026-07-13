@@ -55,6 +55,10 @@ type HomeMetricsConfig struct {
 	IncludeCacheWriteInHitRate bool `json:"includeCacheWriteInHitRate" yaml:"includeCacheWriteInHitRate"`
 }
 
+type AdsConfig struct {
+	Enabled bool `json:"enabled" yaml:"enabled"`
+}
+
 type CursorConfig struct {
 	UserDataDir string `json:"userDataDir" yaml:"userDataDir"`
 }
@@ -69,6 +73,7 @@ type Config struct {
 	ModelAdapters             []ModelAdapterConfig `json:"modelAdapters" yaml:"modelAdapters"`
 	Routing                   RoutingConfig        `json:"routing" yaml:"routing"`
 	HomeMetrics               HomeMetricsConfig    `json:"homeMetrics" yaml:"homeMetrics"`
+	Ads                       AdsConfig            `json:"ads" yaml:"ads"`
 	LastAgentModelHash        string               `json:"lastAgentModelHash" yaml:"lastAgentModelHash"`
 }
 
@@ -111,6 +116,7 @@ func NormalizeConfig(input Config) (Config, error) {
 	}
 	output.Cursor = cursorConfig
 	output.HomeMetrics.IncludeCacheWriteInHitRate = input.HomeMetrics.IncludeCacheWriteInHitRate
+	output.Ads.Enabled = input.Ads.Enabled
 	output.LastAgentModelHash = strings.TrimSpace(input.LastAgentModelHash)
 	output.Routing.Mode = normalizeRoutingMode(input.Routing.Mode)
 	if output.Routing.Mode == "" {

@@ -115,6 +115,13 @@ func Run(resources EmbeddedResources) error {
 			}
 			return len(cfg.ModelAdapters), nil
 		},
+		UserEnabled: func() bool {
+			cfg, err := proxyService.LoadUserConfig()
+			if err != nil {
+				return false
+			}
+			return cfg.Ads.Enabled
+		},
 	})
 	adService := bridge.NewAdService(adCore)
 	var updateManager *updater.Manager
@@ -353,6 +360,10 @@ func Run(resources EmbeddedResources) error {
 	})
 	app.Event.On("proxy:state", func(event *application.CustomEvent) {
 		refreshTray()
+	})
+	app.Event.On("user-config:changed", func(event *application.CustomEvent) {
+		refreshAdRuntime()
+		refreshAdAsync()
 	})
 	app.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(event *application.ApplicationEvent) {
 		logger.Infof("应用版本：v%s", buildinfo.CurrentVersion())
