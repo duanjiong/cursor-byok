@@ -15,14 +15,15 @@ import (
 const configHotReloadMinInterval = 500 * time.Millisecond
 
 type Manager struct {
-	store       *Store
-	current     atomic.Pointer[Config]
-	listenersMu sync.RWMutex
-	listeners   []func(Config)
-	reloadMu    sync.Mutex
-	snapshot    fileSnapshot
-	lastReload  time.Time
-	reloadError string
+	store        *Store
+	current      atomic.Pointer[Config]
+	cursorTokens *CursorTokenRefresher
+	listenersMu  sync.RWMutex
+	listeners    []func(Config)
+	reloadMu     sync.Mutex
+	snapshot     fileSnapshot
+	lastReload   time.Time
+	reloadError  string
 }
 
 func NewManager(ctx context.Context, store *Store) (*Manager, error) {
@@ -37,8 +38,16 @@ func NewManager(ctx context.Context, store *Store) (*Manager, error) {
 		store:    store,
 		snapshot: store.snapshot(),
 	}
+	manager.cursorTokens = NewCursorTokenRefresher(manager)
 	manager.setCurrent(cfg)
 	return manager, nil
+}
+
+func (manager *Manager) CursorTokens() *CursorTokenRefresher {
+	if manager == nil {
+		return nil
+	}
+	return manager.cursorTokens
 }
 
 func (manager *Manager) Current() Config {

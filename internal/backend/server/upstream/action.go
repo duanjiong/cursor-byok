@@ -4,24 +4,97 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
+	serverconfig "cursor/internal/backend/server/config"
 	"cursor/internal/backend/server"
 )
 
 type CompatRouteConfig struct {
-	Name          string
-	StatusCode    int
-	JSONBody      map[string]any
-	MockProtoType string
-	MockBuilder   func(*RequestContext) (map[string]any, error)
-	ConsoleLog    bool
+	Name                        string
+	StatusCode                  int
+	JSONBody                    map[string]any
+	MockProtoType               string
+	MockBuilder                 func(*RequestContext) (map[string]any, error)
+	ConsoleLog                  bool
+	PreserveClientAuthorization bool
+	ForceAuthorizationToken     string
+	ForceCookie                 string
 }
 
 func DirectAction(deps Dependencies, cfg CompatRouteConfig) server.HandlerFunc {
 	return func(ctx *server.Context) error {
 		reqCtx, route, err := newCompatRouteObjects(ctx, deps, cfg)
+		if err != nil {
+			return err
+		}
+		return handleDirect(reqCtx, route)
+	}
+}
+
+type CursorCloudRouteOptions struct {
+	DefaultHost               string
+	PreserveClientWhenNoToken bool
+	AllowLegacyTabServer      bool
+}
+
+func CursorCloudDirectAction(
+	deps Dependencies,
+	configs *serverconfig.Manager,
+	tokenRefresher *serverconfig.CursorTokenRefresher,
+	cfg CompatRouteConfig,
+	opts CursorCloudRouteOptions,
+) server.HandlerFunc {
+	return func(ctx *server.Context) error {
+		if ctx == nil {
+			return nil
+		}
+		routeCfg := cfg
+		cloudCfg := serverconfig.DefaultConfig().Cursor
+		tabServerBaseURL := ""
+		if configs != nil {
+			current := configs.Current()
+			cloudCfg = current.Cursor
+			tabServerBaseURL = strings.TrimSpace(current.TabServerBaseURL)
+		}
+		token := strings.TrimSpace(cloudCfg.AccessToken)
+		if tokenRefresher != nil && tokenRefresher.HasRefreshCredentials() {
+			if refreshed := strings.TrimSpace(tokenRefresher.EffectiveAccessToken(ctx.Request.Context())); refreshed != "" {
+				token = refreshed
+			}
+		}
+		if token != "" {
+			routeCfg.ForceAuthorizationToken = token
+			routeCfg.ForceCookie = strings.TrimSpace(cloudCfg.Cookie)
+		} else if opts.PreserveClientWhenNoToken {
+			routeCfg.PreserveClientAuthorization = true
+		}
+
+		if ctx.Request != nil && ctx.Request.URL != nil {
+			switch {
+			case token != "" || !opts.AllowLegacyTabServer || tabServerBaseURL == "":
+				target, err := ResolveCursorCloudTarget(ctx.Request.URL.Path, opts.DefaultHost)
+				if err != nil {
+					return err
+				}
+				targetURL := *target
+				targetURL.RawQuery = ctx.Request.URL.RawQuery
+				ctx.UpstreamURL = &targetURL
+			case opts.AllowLegacyTabServer && tabServerBaseURL != "":
+				baseURL, err := url.Parse(tabServerBaseURL)
+				if err != nil {
+					return err
+				}
+				targetURL := *ctx.Request.URL
+				targetURL.Scheme = baseURL.Scheme
+				targetURL.Host = baseURL.Host
+				ctx.UpstreamURL = &targetURL
+			}
+		}
+
+		reqCtx, route, err := newCompatRouteObjects(ctx, deps, routeCfg)
 		if err != nil {
 			return err
 		}
@@ -138,13 +211,16 @@ func newCompatRouteObjects(ctx *server.Context, deps Dependencies, cfg CompatRou
 		HTTPRequestID:  resolveHTTPRequestID(ctx.Request),
 	}
 	route := &Route{
-		Name:               cfg.Name,
-		Pattern:            ctx.Request.URL.Path,
-		StatusCode:         cfg.StatusCode,
-		JSONBody:           cfg.JSONBody,
-		MockProtoType:      cfg.MockProtoType,
-		MockPayloadBuilder: cfg.MockBuilder,
-		ConsoleLog:         cfg.ConsoleLog,
+		Name:                        cfg.Name,
+		Pattern:                     ctx.Request.URL.Path,
+		StatusCode:                  cfg.StatusCode,
+		JSONBody:                    cfg.JSONBody,
+		MockProtoType:               cfg.MockProtoType,
+		MockPayloadBuilder:          cfg.MockBuilder,
+		ConsoleLog:                  cfg.ConsoleLog,
+		PreserveClientAuthorization: cfg.PreserveClientAuthorization,
+		ForceAuthorizationToken:     cfg.ForceAuthorizationToken,
+		ForceCookie:                 cfg.ForceCookie,
 	}
 	return reqCtx, route, nil
 }

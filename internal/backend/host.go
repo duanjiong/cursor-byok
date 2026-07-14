@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -383,13 +382,8 @@ func (host *Host) rebuildLocked(cfg serverconfig.Config) error {
 		server.POST("/oauth/token",
 			server.Name("oauth_token"),
 			server.HTTP(),
-			server.Local(upstream.MockOAuthAction(routeDeps, upstream.CompatRouteConfig{
-				Name:       "oauth_token",
-				StatusCode: http.StatusOK,
-			})),
-			server.Upstream(upstream.DirectAction(routeDeps, upstream.CompatRouteConfig{
-				Name: "oauth_token",
-			})),
+			server.Local(upstream.OAuthTokenAction(routeDeps, host.configs)),
+			server.Upstream(upstream.OAuthTokenAction(routeDeps, host.configs)),
 		),
 		server.POST("/aiserver.v1.AuthService/GetEmail",
 			server.Name("auth_service_get_email"),
@@ -402,17 +396,17 @@ func (host *Host) rebuildLocked(cfg serverconfig.Config) error {
 				Name: "auth_service_get_email",
 			})),
 		),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/StreamCpp", "ai_stream_cpp", server.ConnectStream(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/StreamNextCursorPrediction", "ai_stream_next_cursor_prediction", server.ConnectStream(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/GetCppEditClassification", "ai_get_cpp_edit_classification", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/RefreshTabContext", "ai_refresh_tab_context", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/CppConfig", "ai_cpp_config", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/CppEditHistoryStatus", "ai_cpp_edit_history_status", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/CppAppend", "ai_cpp_append", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/CppEditHistoryAppend", "ai_cpp_edit_history_append", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/ReportAiCodeChangeMetrics", "ai_report_ai_code_change_metrics", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/WriteGitCommitMessage", "ai_write_git_commit_message", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.AiService/WriteGitBranchName", "ai_write_git_branch_name", server.ConnectUnary(), routeDeps, host.configs),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/StreamCpp", "ai_stream_cpp", server.ConnectStream(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/StreamNextCursorPrediction", "ai_stream_next_cursor_prediction", server.ConnectStream(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/GetCppEditClassification", "ai_get_cpp_edit_classification", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/RefreshTabContext", "ai_refresh_tab_context", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/CppConfig", "ai_cpp_config", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/CppEditHistoryStatus", "ai_cpp_edit_history_status", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/CppAppend", "ai_cpp_append", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/CppEditHistoryAppend", "ai_cpp_edit_history_append", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/ReportAiCodeChangeMetrics", "ai_report_ai_code_change_metrics", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/WriteGitCommitMessage", "ai_write_git_commit_message", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.AiService/WriteGitBranchName", "ai_write_git_branch_name", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
 		repositoryServiceProcedure(forwarder.RepositoryServiceFastRepoInitHandshakeV2Procedure, "repository_fast_repo_init_handshake_v2", server.ConnectUnary(), agentModule, routeDeps),
 		repositoryServiceProcedure(forwarder.RepositoryServiceFastRepoInitHandshakeProcedure, "repository_fast_repo_init_handshake", server.ConnectUnary(), agentModule, routeDeps),
 		repositoryServiceProcedure(forwarder.RepositoryServiceFastRepoSyncCompleteProcedure, "repository_fast_repo_sync_complete", server.ConnectUnary(), agentModule, routeDeps),
@@ -440,8 +434,8 @@ func (host *Host) rebuildLocked(cfg serverconfig.Config) error {
 				Name: "ai_service",
 			})),
 		),
-		tabServerUpstreamProcedure("/aiserver.v1.CppService/AvailableModels", "cpp_available_models", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.CppService/RecordCppFate", "cpp_record_cpp_fate", server.ConnectUnary(), routeDeps, host.configs),
+		cursorCloudUpstreamProcedure("/aiserver.v1.CppService/AvailableModels", "cpp_available_models", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.CppService/RecordCppFate", "cpp_record_cpp_fate", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
 		server.Any("/aiserver.v1.CppService/*",
 			server.Name("cpp_service"),
 			server.HTTP(),
@@ -453,10 +447,10 @@ func (host *Host) rebuildLocked(cfg serverconfig.Config) error {
 				Name: "cpp_service",
 			})),
 		),
-		tabServerUpstreamProcedure("/aiserver.v1.FileSyncService/FSSyncFile", "file_sync_sync_file", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.FileSyncService/FSIsEnabledForUser", "file_sync_is_enabled_for_user", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.FileSyncService/FSConfig", "file_sync_config", server.ConnectUnary(), routeDeps, host.configs),
-		tabServerUpstreamProcedure("/aiserver.v1.FileSyncService/FSUploadFile", "file_sync_upload_file", server.ConnectUnary(), routeDeps, host.configs),
+		cursorCloudUpstreamProcedure("/aiserver.v1.FileSyncService/FSSyncFile", "file_sync_sync_file", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.FileSyncService/FSIsEnabledForUser", "file_sync_is_enabled_for_user", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.FileSyncService/FSConfig", "file_sync_config", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
+		cursorCloudUpstreamProcedure("/aiserver.v1.FileSyncService/FSUploadFile", "file_sync_upload_file", server.ConnectUnary(), routeDeps, host.configs, upstream.CursorCloudRouteOptions{AllowLegacyTabServer: true}),
 		server.Any("/aiserver.v1.FileSyncService/*",
 			server.Name("file_sync"),
 			server.HTTP(),
@@ -737,25 +731,15 @@ func uploadServiceProcedure(pattern string, name string, protocol server.RouteOp
 	)
 }
 
-func tabServerUpstreamProcedure(pattern string, name string, protocol server.RouteOption, deps upstream.Dependencies, configs *serverconfig.Manager) server.Option {
-	direct := upstream.DirectAction(deps, upstream.CompatRouteConfig{Name: name})
-	action := func(ctx *server.Context) error {
-		if ctx != nil && ctx.Request != nil && ctx.Request.URL != nil {
-			tabServerBaseURL := serverconfig.DefaultTabServerBaseURL
-			if configs != nil {
-				tabServerBaseURL = configs.Current().TabServerBaseURL
-			}
-			baseURL, err := url.Parse(tabServerBaseURL)
-			if err != nil {
-				return fmt.Errorf("解析 tab server 地址失败: %w", err)
-			}
-			targetURL := *ctx.Request.URL
-			targetURL.Scheme = baseURL.Scheme
-			targetURL.Host = baseURL.Host
-			ctx.UpstreamURL = &targetURL
-		}
-		return direct(ctx)
-	}
+func cursorCloudUpstreamProcedure(
+	pattern string,
+	name string,
+	protocol server.RouteOption,
+	deps upstream.Dependencies,
+	configs *serverconfig.Manager,
+	opts upstream.CursorCloudRouteOptions,
+) server.Option {
+	action := upstream.CursorCloudDirectAction(deps, configs, configs.CursorTokens(), upstream.CompatRouteConfig{Name: name}, opts)
 	return server.POST(pattern,
 		server.Name(name),
 		protocol,

@@ -20,7 +20,7 @@ const (
 	DefaultRoutingMode                      = "local"
 	DefaultProviderStreamIdleTimeoutSeconds = 240
 	MinProviderStreamIdleTimeoutSeconds     = 30
-	DefaultTabServerBaseURL                 = "https://tab.leokun.cn"
+	DefaultTabServerBaseURL = "https://tab.leokun.cn"
 )
 
 type ModelAdapterConfig struct {
@@ -61,6 +61,14 @@ type AdsConfig struct {
 
 type CursorConfig struct {
 	UserDataDir string `json:"userDataDir" yaml:"userDataDir"`
+	// AccessToken 为 Cursor 官方云端 session token，用于补全、index 等 upstream 透传。
+	AccessToken string `json:"accessToken,omitempty" yaml:"accessToken,omitempty"`
+	// RefreshToken 用于自动刷新 accessToken；配置后可走 /oauth/token 官方续期。
+	RefreshToken string `json:"refreshToken,omitempty" yaml:"refreshToken,omitempty"`
+	// Cookie 可选；多数 RPC 仅需 AccessToken。
+	Cookie string `json:"cookie,omitempty" yaml:"cookie,omitempty"`
+	// Email 可选；注入 BYOK Cursor 客户端账号展示，未填时使用默认占位邮箱。
+	Email string `json:"email,omitempty" yaml:"email,omitempty"`
 }
 
 type Config struct {
@@ -359,5 +367,11 @@ func normalizeCursorConfig(input CursorConfig) (CursorConfig, error) {
 		}
 		dir = expanded
 	}
-	return CursorConfig{UserDataDir: dir}, nil
+	return CursorConfig{
+		UserDataDir:  dir,
+		AccessToken:  strings.TrimSpace(input.AccessToken),
+		RefreshToken: strings.TrimSpace(input.RefreshToken),
+		Cookie:       strings.TrimSpace(input.Cookie),
+		Email:        strings.TrimSpace(input.Email),
+	}, nil
 }

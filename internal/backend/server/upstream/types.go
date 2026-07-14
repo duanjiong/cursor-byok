@@ -47,8 +47,11 @@ type RequestContext struct {
 }
 
 type ForwardOptions struct {
-	BodyOverride []byte
-	PatchHeaders func(headers http.Header)
+	BodyOverride                []byte
+	PatchHeaders                func(headers http.Header)
+	PreserveClientAuthorization bool
+	ForceAuthorizationToken     string
+	ForceCookie                 string
 }
 
 type ForwardMeta struct {
@@ -80,15 +83,18 @@ func (Wildcard) Match(string) bool { return true }
 type RouteHandler func(reqCtx *RequestContext, route *Route) error
 
 type Route struct {
-	Name               string
-	Pattern            string
-	Matcher            Matcher
-	ConsoleLog         bool
-	StatusCode         int
-	JSONBody           map[string]any
-	MockProtoType      string
-	MockPayloadBuilder func(*RequestContext) (map[string]any, error)
-	Handler            RouteHandler
+	Name                        string
+	Pattern                     string
+	Matcher                     Matcher
+	ConsoleLog                  bool
+	StatusCode                  int
+	JSONBody                    map[string]any
+	MockProtoType               string
+	MockPayloadBuilder          func(*RequestContext) (map[string]any, error)
+	Handler                     RouteHandler
+	PreserveClientAuthorization bool
+	ForceAuthorizationToken     string
+	ForceCookie                 string
 }
 
 func BuildChannelCallError(statusCode int, forwardErr error) (string, string) {

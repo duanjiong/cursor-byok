@@ -91,7 +91,21 @@ func (s *ProxyService) StartProxy() (ProxyState, error) {
 	}
 
 	// 启动时注入账号信息
-	if err := cursor.InjectCursorUserInfo(profile, localruntime.InjectAccountEmail, localruntime.InjectAuthToken); err != nil {
+	token := strings.TrimSpace(localruntime.InjectAuthToken)
+	refreshToken := strings.TrimSpace(localruntime.InjectAuthToken)
+	email := strings.TrimSpace(localruntime.InjectAccountEmail)
+	if cfg, loadErr := s.LoadUserConfig(); loadErr == nil {
+		if configuredToken := strings.TrimSpace(cfg.Cursor.AccessToken); configuredToken != "" {
+			token = configuredToken
+		}
+		if configuredRefresh := strings.TrimSpace(cfg.Cursor.RefreshToken); configuredRefresh != "" {
+			refreshToken = configuredRefresh
+		}
+		if configuredEmail := strings.TrimSpace(cfg.Cursor.Email); configuredEmail != "" {
+			email = configuredEmail
+		}
+	}
+	if err := cursor.InjectCursorUserInfo(profile, email, token, refreshToken); err != nil {
 		logger.Errorf("injectCursorUserInfo failed: %v", err)
 		// 不阻断启动，仅记录日志
 	}

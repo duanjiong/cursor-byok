@@ -87,13 +87,28 @@ func buildUpstreamRequest(reqCtx *RequestContext, body []byte, options ForwardOp
 	}
 	upstreamRequest.Host = reqCtx.TargetURL.Host
 
-	if reqCtx.Mode == server.ModeLocal && shouldRewriteHost(reqCtx.TargetURL.Hostname()) {
-		auth := formatBearerAuthorization(legacyruntime.LocalRelayToken)
-		if auth == "" {
-			return nil, nil, legacyruntime.ErrInvalidSystemSetting
-		}
+	if forceToken := strings.TrimSpace(options.ForceAuthorizationToken); forceToken != "" {
+		auth := formatBearerAuthorization(forceToken)
 		upstreamRequest.Header.Set("Authorization", auth)
 		upstreamRequest.Header.Set("x-cursor-checksum", BuildCursorChecksum(auth))
+	} else if reqCtx.Mode == server.ModeLocal && shouldRewriteHost(reqCtx.TargetURL.Hostname()) {
+		if options.PreserveClientAuthorization && hasClientAuthorization(reqCtx.Headers) {
+			if auth := strings.TrimSpace(upstreamRequest.Header.Get("Authorization")); auth != "" {
+				if strings.TrimSpace(upstreamRequest.Header.Get("x-cursor-checksum")) == "" {
+					upstreamRequest.Header.Set("x-cursor-checksum", BuildCursorChecksum(auth))
+				}
+			}
+		} else {
+			auth := formatBearerAuthorization(legacyruntime.LocalRelayToken)
+			if auth == "" {
+				return nil, nil, legacyruntime.ErrInvalidSystemSetting
+			}
+			upstreamRequest.Header.Set("Authorization", auth)
+			upstreamRequest.Header.Set("x-cursor-checksum", BuildCursorChecksum(auth))
+		}
+	}
+	if forceCookie := strings.TrimSpace(options.ForceCookie); forceCookie != "" {
+		upstreamRequest.Header.Set("Cookie", forceCookie)
 	}
 	if options.PatchHeaders != nil {
 		options.PatchHeaders(upstreamRequest.Header)
@@ -379,9 +394,24 @@ func writeFixedStatus(reqCtx *RequestContext, statusCode int) {
 }
 
 func handleDirect(reqCtx *RequestContext, route *Route) error {
-	_ = route
-	_, err := ForwardToUpstream(reqCtx, ForwardOptions{})
+	options := ForwardOptions{}
+	if route != nil {
+		options.PreserveClientAuthorization = route.PreserveClientAuthorization
+		options.ForceAuthorizationToken = route.ForceAuthorizationToken
+		options.ForceCookie = route.ForceCookie
+	}
+	_, err := ForwardToUpstream(reqCtx, options)
 	return err
+}
+
+func hasClientAuthorization(headers http.Header) bool {
+	if headers == nil {
+		return false
+	}
+	if strings.TrimSpace(headers.Get("Authorization")) != "" {
+		return true
+	}
+	return strings.TrimSpace(headers.Get("Cookie")) != ""
 }
 
 func encodeMockProto(typeName string, payload map[string]any) ([]byte, error) {

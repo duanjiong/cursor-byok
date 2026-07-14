@@ -109,6 +109,21 @@ func (store *Store) Save(_ context.Context, cfg Config) (Config, error) {
 		if strings.TrimSpace(cfg.TabServerBaseURL) == "" && strings.TrimSpace(existing.TabServerBaseURL) != "" {
 			merged.TabServerBaseURL = existing.TabServerBaseURL
 		}
+		if strings.TrimSpace(cfg.Cursor.AccessToken) == "" && strings.TrimSpace(existing.Cursor.AccessToken) != "" {
+			merged.Cursor.AccessToken = existing.Cursor.AccessToken
+		}
+		if strings.TrimSpace(cfg.Cursor.RefreshToken) == "" && strings.TrimSpace(existing.Cursor.RefreshToken) != "" {
+			merged.Cursor.RefreshToken = existing.Cursor.RefreshToken
+		}
+		if strings.TrimSpace(cfg.Cursor.Cookie) == "" && strings.TrimSpace(existing.Cursor.Cookie) != "" {
+			merged.Cursor.Cookie = existing.Cursor.Cookie
+		}
+		if strings.TrimSpace(cfg.Cursor.Email) == "" && strings.TrimSpace(existing.Cursor.Email) != "" {
+			merged.Cursor.Email = existing.Cursor.Email
+		}
+		if strings.TrimSpace(cfg.Cursor.UserDataDir) == "" && strings.TrimSpace(existing.Cursor.UserDataDir) != "" {
+			merged.Cursor.UserDataDir = existing.Cursor.UserDataDir
+		}
 		// 广告开关仅通过 config.yaml 配置，前端保存时保留磁盘上的 ads 段。
 		merged.Ads = existing.Ads
 	}

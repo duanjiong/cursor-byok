@@ -30,7 +30,7 @@ var cursorStateDisabledStatsigGates = []string{
 
 // InjectCursorUserInfo synchronizes the Cursor user-level auth cache used by the
 // Settings page. It does not modify the installed Cursor app bundle.
-func InjectCursorUserInfo(profile RuntimeProfile, email, token string) error {
+func InjectCursorUserInfo(profile RuntimeProfile, email, accessToken, refreshToken string) error {
 	stateDBPath, err := profile.StateDBPath()
 	if err != nil {
 		return err
@@ -39,7 +39,7 @@ func InjectCursorUserInfo(profile RuntimeProfile, email, token string) error {
 		return fmt.Errorf("创建 Cursor 状态目录失败: %w", err)
 	}
 
-	values := buildCursorAuthStateValues(email, token)
+	values := buildCursorAuthStateValues(email, accessToken, refreshToken)
 	if err := syncCursorAuthStateDB(stateDBPath, values); err != nil {
 		return fmt.Errorf("同步 Cursor 状态库失败 path=%s: %w", stateDBPath, err)
 	}
@@ -55,15 +55,19 @@ func InjectCursorUserInfo(profile RuntimeProfile, email, token string) error {
 	return nil
 }
 
-func buildCursorAuthStateValues(email, token string) map[string]string {
+func buildCursorAuthStateValues(email, accessToken, refreshToken string) map[string]string {
 	email = strings.TrimSpace(email)
-	token = strings.TrimSpace(token)
+	accessToken = strings.TrimSpace(accessToken)
+	refreshToken = strings.TrimSpace(refreshToken)
+	if refreshToken == "" {
+		refreshToken = accessToken
+	}
 
 	return map[string]string{
-		"cursorAuth/accessToken":              token,
+		"cursorAuth/accessToken":              accessToken,
 		"cursorAuth/cachedEmail":              email,
 		"cursorAuth/cachedSignUpType":         cursorStateDefaultSignUpType,
-		"cursorAuth/refreshToken":             token,
+		"cursorAuth/refreshToken":             refreshToken,
 		"cursorAuth/stripeMembershipType":     cursorStateMembershipType,
 		"cursorAuth/stripeSubscriptionStatus": cursorStateSubscriptionStatus,
 	}
