@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	serverconfig "cursor/internal/backend/server/config"
 	"cursor/internal/backend/server"
+	serverconfig "cursor/internal/backend/server/config"
 )
 
 type CompatRouteConfig struct {
@@ -22,6 +22,7 @@ type CompatRouteConfig struct {
 	PreserveClientAuthorization bool
 	ForceAuthorizationToken     string
 	ForceCookie                 string
+	ResponseTransform           ResponseTransform
 }
 
 func DirectAction(deps Dependencies, cfg CompatRouteConfig) server.HandlerFunc {
@@ -221,6 +222,7 @@ func newCompatRouteObjects(ctx *server.Context, deps Dependencies, cfg CompatRou
 		PreserveClientAuthorization: cfg.PreserveClientAuthorization,
 		ForceAuthorizationToken:     cfg.ForceAuthorizationToken,
 		ForceCookie:                 cfg.ForceCookie,
+		ResponseTransform:           cfg.ResponseTransform,
 	}
 	return reqCtx, route, nil
 }

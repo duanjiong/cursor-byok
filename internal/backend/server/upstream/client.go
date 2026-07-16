@@ -2,6 +2,7 @@ package upstream
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -56,18 +57,56 @@ func ForwardToUpstream(reqCtx *RequestContext, options ForwardOptions) (*Forward
 	}
 	defer upstreamResponse.Body.Close()
 
+	contentType := upstreamResponse.Header.Get("content-type")
+	meta := &ForwardMeta{
+		StatusCode:  upstreamResponse.StatusCode,
+		Status:      upstreamResponse.Status,
+		ContentType: contentType,
+	}
+
+	if options.ResponseTransform == nil {
+		copyResponseHeadersToClient(reqCtx.ResponseWriter.Header(), upstreamResponse.Header)
+		reqCtx.ResponseWriter.WriteHeader(upstreamResponse.StatusCode)
+		written, copyErr := copyResponse(reqCtx.ResponseWriter, upstreamResponse.Body)
+		meta.ResponseSize = written
+		if copyErr != nil {
+			return meta, copyErr
+		}
+		return meta, nil
+	}
+
+	rawBody, readErr := io.ReadAll(upstreamResponse.Body)
+	if readErr != nil {
+		return meta, readErr
+	}
+	body := rawBody
+	if strings.EqualFold(strings.TrimSpace(upstreamResponse.Header.Get("content-encoding")), "gzip") {
+		decoded, gzipErr := gunzipBytes(rawBody)
+		if gzipErr == nil {
+			body = decoded
+			upstreamResponse.Header.Del("content-encoding")
+		}
+	}
+	transformed, newContentType, transformErr := options.ResponseTransform(upstreamResponse.StatusCode, contentType, body)
+	if transformErr != nil {
+		transformed = body
+	} else if len(transformed) > 0 {
+		body = transformed
+	}
+	if strings.TrimSpace(newContentType) != "" {
+		contentType = newContentType
+		upstreamResponse.Header.Set("content-type", contentType)
+		meta.ContentType = contentType
+	}
+	upstreamResponse.Header.Set("content-length", strconv.Itoa(len(body)))
+	upstreamResponse.Header.Del("transfer-encoding")
+
 	copyResponseHeadersToClient(reqCtx.ResponseWriter.Header(), upstreamResponse.Header)
 	reqCtx.ResponseWriter.WriteHeader(upstreamResponse.StatusCode)
-
-	written, copyErr := copyResponse(reqCtx.ResponseWriter, upstreamResponse.Body)
-	meta := &ForwardMeta{
-		StatusCode:   upstreamResponse.StatusCode,
-		Status:       upstreamResponse.Status,
-		ContentType:  upstreamResponse.Header.Get("content-type"),
-		ResponseSize: written,
-	}
-	if copyErr != nil {
-		return meta, copyErr
+	written, writeErr := reqCtx.ResponseWriter.Write(body)
+	meta.ResponseSize = int64(written)
+	if writeErr != nil {
+		return meta, writeErr
 	}
 	return meta, nil
 }
@@ -399,6 +438,7 @@ func handleDirect(reqCtx *RequestContext, route *Route) error {
 		options.PreserveClientAuthorization = route.PreserveClientAuthorization
 		options.ForceAuthorizationToken = route.ForceAuthorizationToken
 		options.ForceCookie = route.ForceCookie
+		options.ResponseTransform = route.ResponseTransform
 	}
 	_, err := ForwardToUpstream(reqCtx, options)
 	return err
@@ -460,4 +500,13 @@ func newProtoMessage(typeName string) (proto.Message, error) {
 	default:
 		return nil, fmt.Errorf("unsupported proto message type %q", typeName)
 	}
+}
+
+func gunzipBytes(raw []byte) ([]byte, error) {
+	reader, err := gzip.NewReader(bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+	return io.ReadAll(reader)
 }

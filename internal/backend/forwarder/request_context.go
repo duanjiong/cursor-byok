@@ -31,6 +31,7 @@ func normalizeRequestContextForStorageMode(requestContext *agentv1.RequestContex
 	}
 
 	descriptors := collectSkillDescriptors(cloned)
+	descriptors = mergeConfiguredSkillDescriptors(cloned, descriptors)
 	cloned.Rules = filterNonSkillRules(cloned.GetRules())
 	cloned.AgentSkills = nil
 	descriptors = guardSkillDescriptors(descriptors)
@@ -380,8 +381,13 @@ func inferSkillPackageType(path string) agentv1.PackageType {
 	case strings.Contains(normalized, "/.cursor/skills/"),
 		strings.Contains(normalized, "/.cursor/skills-cursor/"),
 		strings.Contains(normalized, "/.codex/skills/"),
-		// BYOK fakehome：用户级 ~/.cursor 被 patch 到 sshcmd/fakehome，skills 在 fakehome/skills
-		strings.Contains(normalized, "/fakehome/skills/"):
+		strings.Contains(normalized, "/skills-cache/"),
+		strings.Contains(normalized, "/.cursor-local-assistant-v2/skills/"),
+		// BYOK fakehome：
+		//   fakehome/skills      → 客户端用户级 skills 隔离（通常为空）
+		//   fakehome/skills-byok → 助手侧共享 skill（对齐 rules-byok）
+		strings.Contains(normalized, "/fakehome/skills/"),
+		strings.Contains(normalized, "/fakehome/skills-byok/"):
 		return agentv1.PackageType_PACKAGE_TYPE_CURSOR_PERSONAL
 	default:
 		return agentv1.PackageType_PACKAGE_TYPE_UNSPECIFIED

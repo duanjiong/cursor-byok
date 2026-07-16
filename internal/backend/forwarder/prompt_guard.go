@@ -25,8 +25,9 @@ const (
 	promptGuardRulesTotalChars          = 24000
 	promptGuardRulesMaxCount            = 40
 	promptGuardSkillDescriptionChars    = 800
-	promptGuardSkillDescriptionsTotal   = 16000
-	promptGuardSkillDescriptorsMaxCount = 32
+	promptGuardSkillDescriptionsTotal   = 32000
+	// Claude/Cursor plugin skills 常排在 builtins 之后；上限过低会把 claude-mem 等插件 skills 截掉。
+	promptGuardSkillDescriptorsMaxCount = 64
 	promptGuardAgentSkillContentChars   = 6000
 	promptGuardAgentSkillsMaxCount      = 16
 	promptGuardRealtimeTextChars        = 12000
@@ -173,9 +174,11 @@ func guardSkillDescriptors(descriptors []*agentv1.SkillDescriptor) []*agentv1.Sk
 	if len(descriptors) == 0 {
 		return nil
 	}
-	result := make([]*agentv1.SkillDescriptor, 0, minInt(len(descriptors), promptGuardSkillDescriptorsMaxCount))
+	// 先保留 plugin/项目/配置 skills，再填 builtins；避免 skills-cursor 占满后截掉 claude-mem。
+	ordered := prioritizeSkillDescriptorsForGuard(descriptors)
+	result := make([]*agentv1.SkillDescriptor, 0, minInt(len(ordered), promptGuardSkillDescriptorsMaxCount))
 	remaining := promptGuardSkillDescriptionsTotal
-	for _, descriptor := range descriptors {
+	for _, descriptor := range ordered {
 		if descriptor == nil || len(result) >= promptGuardSkillDescriptorsMaxCount {
 			continue
 		}
@@ -196,6 +199,40 @@ func guardSkillDescriptors(descriptors []*agentv1.SkillDescriptor) []*agentv1.Sk
 		result = append(result, cloned)
 	}
 	return result
+}
+
+func prioritizeSkillDescriptorsForGuard(descriptors []*agentv1.SkillDescriptor) []*agentv1.SkillDescriptor {
+	if len(descriptors) <= 1 {
+		return descriptors
+	}
+	high := make([]*agentv1.SkillDescriptor, 0, len(descriptors))
+	low := make([]*agentv1.SkillDescriptor, 0, len(descriptors))
+	for _, descriptor := range descriptors {
+		if descriptor == nil {
+			continue
+		}
+		path := firstNonEmpty(descriptor.GetReadmeFilePath(), descriptor.GetFolderPath())
+		if isHighPrioritySkillPath(path) {
+			high = append(high, descriptor)
+			continue
+		}
+		low = append(low, descriptor)
+	}
+	return append(high, low...)
+}
+
+func isHighPrioritySkillPath(path string) bool {
+	normalized := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(path), "\\", "/"))
+	switch {
+	case strings.Contains(normalized, "/.claude/plugins/"),
+		strings.Contains(normalized, "/.cursor/plugins/"),
+		strings.Contains(normalized, "/.agents/skills/"),
+		strings.Contains(normalized, "/fakehome/skills-byok/"),
+		strings.Contains(normalized, "/skills-cache/"):
+		return true
+	default:
+		return false
+	}
 }
 
 func guardAgentSkills(skills []*agentv1.AgentSkill) []*agentv1.AgentSkill {

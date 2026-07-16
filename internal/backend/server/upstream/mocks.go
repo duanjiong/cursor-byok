@@ -40,6 +40,7 @@ const (
 	bootstrapStatsigSubagentSupportInterrupt         = "subagent_support_interrupt"
 	bootstrapStatsigExplicitSubagentModels           = "explicit_subagent_models"
 	bootstrapStatsigMcpDirectClientToolFetch         = "mcp_direct_client_tool_fetch"
+	bootstrapStatsigEnableCCPluginImport             = "enable_cc_plugin_import"
 	bootstrapStatsigGlassCustomThemeSupport          = "glass_custom_theme_support"
 	bootstrapStatsigGlassAutomationsUI               = "glass_automations_ui"
 	bootstrapStatsigTerminalUI2                      = "terminal_ui_2"
@@ -135,6 +136,7 @@ var bootstrapStatsigTemplate = statsigBootstrapTemplate{
 		bootstrapStatsigSubagentSupportInterrupt:         buildEnabledStatsigGate(bootstrapStatsigSubagentSupportInterrupt),
 		bootstrapStatsigExplicitSubagentModels:           buildEnabledStatsigGate(bootstrapStatsigExplicitSubagentModels),
 		bootstrapStatsigMcpDirectClientToolFetch:         buildEnabledStatsigGate(bootstrapStatsigMcpDirectClientToolFetch),
+		bootstrapStatsigEnableCCPluginImport:             buildEnabledStatsigGate(bootstrapStatsigEnableCCPluginImport),
 		bootstrapStatsigGlassCustomThemeSupport:          buildEnabledStatsigGate(bootstrapStatsigGlassCustomThemeSupport),
 		bootstrapStatsigGlassAutomationsUI:               buildEnabledStatsigGate(bootstrapStatsigGlassAutomationsUI),
 		bootstrapStatsigTerminalUI2:                      buildEnabledStatsigGate(bootstrapStatsigTerminalUI2),

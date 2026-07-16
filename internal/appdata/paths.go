@@ -67,6 +67,16 @@ func RulesRootPath() string {
 	return filepath.Join(RootDir(), "rules")
 }
 
+// SkillsConfigFilePath 返回全局 skills 配置文件路径（用户级覆盖）。
+func SkillsConfigFilePath() string {
+	return filepath.Join(RootDir(), "skills.yaml")
+}
+
+// SkillsCacheRootPath 返回远程 skill 拉取缓存根目录。
+func SkillsCacheRootPath() string {
+	return filepath.Join(DataRootPath(), "skills-cache")
+}
+
 // LogsRootPath 返回统一日志根目录路径。
 func LogsRootPath() string {
 	return filepath.Join(RootDir(), "logs")

@@ -46,12 +46,17 @@ type RequestContext struct {
 	HTTPRequestID  string
 }
 
+// ResponseTransform mutates an upstream response body before it is written to the client.
+// It may return a replacement content type; empty keeps the original.
+type ResponseTransform func(statusCode int, contentType string, body []byte) (newBody []byte, newContentType string, err error)
+
 type ForwardOptions struct {
 	BodyOverride                []byte
 	PatchHeaders                func(headers http.Header)
 	PreserveClientAuthorization bool
 	ForceAuthorizationToken     string
 	ForceCookie                 string
+	ResponseTransform           ResponseTransform
 }
 
 type ForwardMeta struct {
@@ -95,6 +100,7 @@ type Route struct {
 	PreserveClientAuthorization bool
 	ForceAuthorizationToken     string
 	ForceCookie                 string
+	ResponseTransform           ResponseTransform
 }
 
 func BuildChannelCallError(statusCode int, forwardErr error) (string, string) {
