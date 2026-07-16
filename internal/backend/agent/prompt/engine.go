@@ -953,7 +953,7 @@ func buildMessagesFromPendingAssistantRaw(raw string) []Message {
 				Type:  "function",
 				Function: ToolCallFunctionShape{
 					Name:      strings.TrimSpace(item.ToolName),
-					Arguments: compactPromptJSON(item.Args),
+					Arguments: toolArgumentsJSON(item.Args),
 				},
 			})
 			if resultText := extractToolResultText(item.Result); resultText != "" {
@@ -999,6 +999,23 @@ func compactPromptJSON(raw json.RawMessage) string {
 	encoded, err := json.Marshal(value)
 	if err != nil {
 		return strings.TrimSpace(string(raw))
+	}
+	return string(encoded)
+}
+
+// toolArgumentsJSON compacts tool-call arguments for provider replay.
+// Invalid/truncated model JSON falls back to "{}" so OpenAI does not 400.
+func toolArgumentsJSON(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return "{}"
+	}
+	var value any
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "{}"
+	}
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return "{}"
 	}
 	return string(encoded)
 }

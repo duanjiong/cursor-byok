@@ -152,6 +152,7 @@ func sanitizeProviderMessages(input []Message) []Message {
 	}
 	filtered = mergeAdjacentAssistantToolCallMessages(filtered)
 	filtered = trimDanglingAssistantToolCalls(filtered)
+	filtered = sanitizeProviderMessageToolCallArguments(filtered)
 	for len(filtered) > 0 && isAssistantPrefillMessage(filtered[len(filtered)-1]) {
 		filtered = filtered[:len(filtered)-1]
 	}

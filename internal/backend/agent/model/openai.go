@@ -2012,7 +2012,7 @@ func normalizeOpenAIResponsesInput(messages []Message) (string, []map[string]any
 					"type":      "function_call",
 					"call_id":   callID,
 					"name":      name,
-					"arguments": toolCall.Function.Arguments,
+					"arguments": sanitizeToolCallArgumentsJSON(toolCall.Function.Arguments),
 				}
 				if itemID := strings.TrimSpace(toolCall.OpenAIResponsesID); itemID != "" {
 					toolItem["id"] = itemID

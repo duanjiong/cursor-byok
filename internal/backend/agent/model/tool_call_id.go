@@ -3,6 +3,7 @@ package modeladapter
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"strings"
 )
 
@@ -68,9 +69,37 @@ func normalizeToolCallDescriptors(toolCalls []ToolCallDescriptor) []providerTool
 			Type:     toolCall.Type,
 			Function: toolCall.Function,
 		}
+		item.Function.Arguments = sanitizeToolCallArgumentsJSON(item.Function.Arguments)
 		normalized = append(normalized, item)
 	}
 	return normalized
+}
+
+// sanitizeToolCallArgumentsJSON ensures provider-bound function.arguments is
+// valid JSON. Truncated model output must not be replayed as-is (OpenAI 400).
+func sanitizeToolCallArgumentsJSON(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "{}"
+	}
+	if json.Valid([]byte(trimmed)) {
+		return trimmed
+	}
+	return "{}"
+}
+
+func sanitizeProviderMessageToolCallArguments(messages []Message) []Message {
+	for index := range messages {
+		if len(messages[index].ToolCalls) == 0 {
+			continue
+		}
+		for toolIndex := range messages[index].ToolCalls {
+			messages[index].ToolCalls[toolIndex].Function.Arguments = sanitizeToolCallArgumentsJSON(
+				messages[index].ToolCalls[toolIndex].Function.Arguments,
+			)
+		}
+	}
+	return messages
 }
 
 func buildProviderSafeToolCallID(namespace string, raw string) string {

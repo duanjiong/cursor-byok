@@ -1145,16 +1145,13 @@ func overrideToolReplayFromEntry(messages []promptengine.Message, toolName strin
 			for toolIndex := range messages[index].ToolCalls {
 				currentName := strings.TrimSpace(messages[index].ToolCalls[toolIndex].Function.Name)
 				effectiveName := effectiveReplayToolName(currentName, overrideName)
-				effectiveArgs := firstNonEmpty(
-					overrideArgs,
-					strings.TrimSpace(messages[index].ToolCalls[toolIndex].Function.Arguments),
-					"{}",
-				)
+				currentArgs := strings.TrimSpace(messages[index].ToolCalls[toolIndex].Function.Arguments)
+				effectiveArgs := firstValidJSONArgs(overrideArgs, currentArgs)
 				if isLegacyPatchEditToolName(overrideName) {
-					effectiveArgs = firstNonEmpty(strings.TrimSpace(messages[index].ToolCalls[toolIndex].Function.Arguments), "{}")
+					effectiveArgs = firstValidJSONArgs(currentArgs)
 				}
 				messages[index].ToolCalls[toolIndex].Function.Name = effectiveName
-				messages[index].ToolCalls[toolIndex].Function.Arguments = firstNonEmpty(effectiveArgs, "{}")
+				messages[index].ToolCalls[toolIndex].Function.Arguments = effectiveArgs
 			}
 		case "tool":
 			messages[index].Name = effectiveReplayToolName(strings.TrimSpace(messages[index].Name), overrideName)
@@ -1179,20 +1176,31 @@ func overrideModelToolReplayFromEntry(message *modeladapter.Message, toolName st
 		for index := range message.ToolCalls {
 			currentName := strings.TrimSpace(message.ToolCalls[index].Function.Name)
 			effectiveName := effectiveReplayToolName(currentName, overrideName)
-			effectiveArgs := firstNonEmpty(
-				overrideArgs,
-				strings.TrimSpace(message.ToolCalls[index].Function.Arguments),
-				"{}",
-			)
+			currentArgs := strings.TrimSpace(message.ToolCalls[index].Function.Arguments)
+			effectiveArgs := firstValidJSONArgs(overrideArgs, currentArgs)
 			if isLegacyPatchEditToolName(overrideName) {
-				effectiveArgs = firstNonEmpty(strings.TrimSpace(message.ToolCalls[index].Function.Arguments), "{}")
+				effectiveArgs = firstValidJSONArgs(currentArgs)
 			}
 			message.ToolCalls[index].Function.Name = effectiveName
-			message.ToolCalls[index].Function.Arguments = firstNonEmpty(effectiveArgs, "{}")
+			message.ToolCalls[index].Function.Arguments = effectiveArgs
 		}
 	case "tool":
 		message.Name = effectiveReplayToolName(strings.TrimSpace(message.Name), overrideName)
 	}
+}
+
+// firstValidJSONArgs returns the first non-empty value that is valid JSON, else "{}".
+func firstValidJSONArgs(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		if json.Valid([]byte(trimmed)) {
+			return trimmed
+		}
+	}
+	return "{}"
 }
 
 func effectiveReplayToolName(currentName string, overrideName string) string {

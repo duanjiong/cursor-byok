@@ -1,6 +1,7 @@
 package forwarder
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -83,7 +84,9 @@ func (service *Service) completePreDispatchToolError(
 		}
 	}
 	resultText := formatPreDispatchToolError(invocation, cause)
-	if err := service.appendToolResult(stream, invocation.CallID, strings.TrimSpace(invocation.ToolName), invocation.ArgsJSON, resultText, invocation.ReasoningContent, nil); err != nil {
+	// Persist only valid JSON args so later provider replay cannot 400 on truncated model output.
+	argsJSON := sanitizePersistedToolArgsJSON(invocation.ArgsJSON)
+	if err := service.appendToolResult(stream, invocation.CallID, strings.TrimSpace(invocation.ToolName), argsJSON, resultText, invocation.ReasoningContent, nil); err != nil {
 		return err
 	}
 	if err := service.publishToolCallCompleted(stream.RequestID, invocation.CallID, invocation.ModelCallID, nil); err != nil {
@@ -108,4 +111,12 @@ func formatPreDispatchToolError(invocation runtimecore.ToolInvocation, cause err
 		message = strings.TrimSpace(cause.Error())
 	}
 	return fmt.Sprintf("%s error: %s", toolName, message)
+}
+
+func sanitizePersistedToolArgsJSON(raw []byte) []byte {
+	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" || !json.Valid([]byte(trimmed)) {
+		return []byte("{}")
+	}
+	return []byte(trimmed)
 }

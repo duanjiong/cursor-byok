@@ -353,7 +353,7 @@ func BuildToolCallReplayDescriptor(toolCallID string, toolCall *agentv1.ToolCall
 		Type: "function",
 		Function: ToolCallFunctionShape{
 			Name:      shape.ToolName,
-			Arguments: firstNonEmpty(shape.ArgsJSON, "{}"),
+			Arguments: firstValidToolArgumentsJSON(shape.ArgsJSON),
 		},
 	}, true
 }
@@ -406,10 +406,23 @@ func extractToolCallReplayShape(toolCall *agentv1.ToolCall) (toolCallReplayShape
 	}
 	return toolCallReplayShape{
 		ToolName:   toolName,
-		ArgsJSON:   firstNonEmpty(argsJSON, "{}"),
+		ArgsJSON:   firstValidToolArgumentsJSON(argsJSON),
 		ResultJSON: resultJSON,
 		HasResult:  hasResult,
 	}, true
+}
+
+func firstValidToolArgumentsJSON(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		if json.Valid([]byte(trimmed)) {
+			return trimmed
+		}
+	}
+	return "{}"
 }
 
 func extractReplayFieldJSON(message protoreflect.Message, fieldName string) (string, bool) {
