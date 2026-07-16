@@ -379,7 +379,9 @@ func inferSkillPackageType(path string) agentv1.PackageType {
 		return agentv1.PackageType_PACKAGE_TYPE_CURSOR_PROJECT
 	case strings.Contains(normalized, "/.cursor/skills/"),
 		strings.Contains(normalized, "/.cursor/skills-cursor/"),
-		strings.Contains(normalized, "/.codex/skills/"):
+		strings.Contains(normalized, "/.codex/skills/"),
+		// BYOK fakehome：用户级 ~/.cursor 被 patch 到 sshcmd/fakehome，skills 在 fakehome/skills
+		strings.Contains(normalized, "/fakehome/skills/"):
 		return agentv1.PackageType_PACKAGE_TYPE_CURSOR_PERSONAL
 	default:
 		return agentv1.PackageType_PACKAGE_TYPE_UNSPECIFIED
