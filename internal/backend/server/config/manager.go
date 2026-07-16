@@ -4,26 +4,30 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"cursor/internal/appdata"
 	legacyruntime "cursor/internal/runtime"
 )
 
 const configHotReloadMinInterval = 500 * time.Millisecond
 
 type Manager struct {
-	store        *Store
-	current      atomic.Pointer[Config]
-	cursorTokens *CursorTokenRefresher
-	listenersMu  sync.RWMutex
-	listeners    []func(Config)
-	reloadMu     sync.Mutex
-	snapshot     fileSnapshot
-	lastReload   time.Time
-	reloadError  string
+	store              *Store
+	current            atomic.Pointer[Config]
+	cursorTokens       *CursorTokenRefresher
+	listenersMu        sync.RWMutex
+	listeners          []func(Config)
+	reloadMu           sync.Mutex
+	snapshot           fileSnapshot
+	lastReload         time.Time
+	reloadError        string
+	lastAgentModelHash atomic.Value // string
 }
 
 func NewManager(ctx context.Context, store *Store) (*Manager, error) {
@@ -40,6 +44,13 @@ func NewManager(ctx context.Context, store *Store) (*Manager, error) {
 	}
 	manager.cursorTokens = NewCursorTokenRefresher(manager)
 	manager.setCurrent(cfg)
+	manager.initLastAgentModelHash(cfg.LastAgentModelHash)
+	if strings.TrimSpace(cfg.LastAgentModelHash) != "" {
+		cfg.LastAgentModelHash = ""
+		if _, saveErr := manager.Save(ctx, cfg); saveErr != nil {
+			log.Printf("config failed to strip legacy lastAgentModelHash from config.yaml error=%v", saveErr)
+		}
+	}
 	return manager, nil
 }
 
@@ -98,21 +109,68 @@ func (manager *Manager) LastAgentModelHash() string {
 	if manager == nil {
 		return ""
 	}
-	return strings.TrimSpace(manager.Current().LastAgentModelHash)
+	if value, ok := manager.lastAgentModelHash.Load().(string); ok {
+		return strings.TrimSpace(value)
+	}
+	return ""
 }
 
-func (manager *Manager) SaveLastAgentModelHash(ctx context.Context, value string) error {
+func (manager *Manager) SaveLastAgentModelHash(_ context.Context, value string) error {
 	if manager == nil {
 		return fmt.Errorf("config manager is not initialized")
 	}
 	normalizedValue := strings.TrimSpace(value)
-	current := manager.Current()
-	if strings.TrimSpace(current.LastAgentModelHash) == normalizedValue {
+	if manager.LastAgentModelHash() == normalizedValue {
 		return nil
 	}
-	current.LastAgentModelHash = normalizedValue
-	_, err := manager.Save(ctx, current)
-	return err
+	if err := writeLastAgentModelHashFile(normalizedValue); err != nil {
+		return err
+	}
+	manager.lastAgentModelHash.Store(normalizedValue)
+	return nil
+}
+
+func (manager *Manager) initLastAgentModelHash(legacyFromConfig string) {
+	if manager == nil {
+		return
+	}
+	fromFile := readLastAgentModelHashFile()
+	if fromFile != "" {
+		manager.lastAgentModelHash.Store(fromFile)
+		return
+	}
+	legacy := strings.TrimSpace(legacyFromConfig)
+	if legacy == "" {
+		manager.lastAgentModelHash.Store("")
+		return
+	}
+	if err := writeLastAgentModelHashFile(legacy); err != nil {
+		log.Printf("config failed to migrate lastAgentModelHash error=%v", err)
+	}
+	manager.lastAgentModelHash.Store(legacy)
+}
+
+func readLastAgentModelHashFile() string {
+	data, err := os.ReadFile(appdata.LastAgentModelHashFilePath())
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+func writeLastAgentModelHashFile(value string) error {
+	path := appdata.LastAgentModelHashFilePath()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("创建 last agent model hash 目录失败: %w", err)
+	}
+	tempPath := path + ".tmp"
+	if err := os.WriteFile(tempPath, []byte(strings.TrimSpace(value)+"\n"), 0o644); err != nil {
+		return fmt.Errorf("写入临时 last agent model hash 失败: %w", err)
+	}
+	if err := os.Rename(tempPath, path); err != nil {
+		return fmt.Errorf("保存 last agent model hash 失败: %w", err)
+	}
+	return nil
 }
 
 func (manager *Manager) ProviderStreamIdleTimeout(ctx context.Context) time.Duration {

@@ -81,8 +81,9 @@ type Config struct {
 	ModelAdapters             []ModelAdapterConfig `json:"modelAdapters" yaml:"modelAdapters"`
 	Routing                   RoutingConfig        `json:"routing" yaml:"routing"`
 	HomeMetrics               HomeMetricsConfig    `json:"homeMetrics" yaml:"homeMetrics"`
-	Ads                       AdsConfig            `json:"ads" yaml:"ads"`
-	LastAgentModelHash        string               `json:"lastAgentModelHash" yaml:"lastAgentModelHash"`
+	Ads AdsConfig `json:"ads" yaml:"ads"`
+	// LastAgentModelHash 仅用于兼容读取旧版 config.yaml；写入时会被剥离，真实状态在独立文件。
+	LastAgentModelHash string `json:"lastAgentModelHash,omitempty" yaml:"lastAgentModelHash,omitempty"`
 }
 
 func DefaultConfig() Config {

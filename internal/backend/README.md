@@ -97,6 +97,7 @@ internal/backend/
 助手目录固定为：
 
 - `~/.cursor-local-assistant-v2/config.yaml`
+- `~/.cursor-local-assistant-v2/last-agent-model-hash`
 - `~/.cursor-local-assistant-v2/data/ca.crt`
 - `~/.cursor-local-assistant-v2/data/ads/`
 - `~/.cursor-local-assistant-v2/history/`
@@ -105,6 +106,7 @@ internal/backend/
 约定：
 
 - `config.yaml` 是用户配置
+- `last-agent-model-hash` 是最近一次 agent 渠道记忆（用于 commit message 选模），不属于用户配置
 - `data/ca.crt` 是注入给宿主的 CA 证书
 - `data/ads/` 是广告包与资源缓存目录
 - `history/` 是会话事实与全局 usage JSON 目录，不属于日志

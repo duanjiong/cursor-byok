@@ -33,6 +33,12 @@ func ConfigFilePath() string {
 	return filepath.Join(RootDir(), "config.yaml")
 }
 
+// LastAgentModelHashFilePath 返回最近一次 agent 渠道 hash 的运行时状态文件路径。
+// 该值不属于用户配置，不写入 config.yaml。
+func LastAgentModelHashFilePath() string {
+	return filepath.Join(RootDir(), "last-agent-model-hash")
+}
+
 func DataRootPath() string {
 	return filepath.Join(RootDir(), "data")
 }

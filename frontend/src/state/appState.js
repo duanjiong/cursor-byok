@@ -546,7 +546,6 @@ function normalizeConfig(source) {
     homeMetrics: {
       includeCacheWriteInHitRate: asBoolean(homeMetrics.includeCacheWriteInHitRate),
     },
-    lastAgentModelHash: asString(raw.lastAgentModelHash),
   };
 }
 
@@ -587,7 +586,6 @@ function buildConfigPayload(source = appState) {
     modelAdapters: normalized.modelAdapters.map(({ id, ...adapter }) => adapter),
     routing: normalized.routing,
     homeMetrics: normalized.homeMetrics,
-    lastAgentModelHash: normalized.lastAgentModelHash,
   };
 }
 

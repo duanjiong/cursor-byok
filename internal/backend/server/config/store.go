@@ -167,6 +167,9 @@ func (store *Store) saveLocked(normalized Config) error {
 		return fmt.Errorf("创建用户配置目录失败: %w", err)
 	}
 
+	// lastAgentModelHash 是运行时记忆，不写回用户 config.yaml。
+	normalized.LastAgentModelHash = ""
+
 	data, err := yaml.Marshal(normalized)
 	if err != nil {
 		return fmt.Errorf("序列化用户配置失败: %w", err)
